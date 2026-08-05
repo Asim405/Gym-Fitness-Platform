@@ -49,7 +49,7 @@ CREATE TABLE memberships (
   id INT AUTO_INCREMENT PRIMARY KEY,
   member_id INT NOT NULL,
   membership_plan_id INT NOT NULL,
-  start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  start_date DATE NOT NULL DEFAULT (CURRENT_DATE),
   end_date DATE NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
   amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -152,7 +152,7 @@ CREATE TABLE progress_metrics (
   body_fat_pct DECIMAL(5,2),
   bmi DECIMAL(5,2),
   goal_note VARCHAR(255),
-  recorded_at DATE NOT NULL DEFAULT CURRENT_DATE,
+  recorded_at DATE NOT NULL DEFAULT (CURRENT_DATE),
   FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
