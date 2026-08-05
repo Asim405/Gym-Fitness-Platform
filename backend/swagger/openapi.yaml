@@ -1,0 +1,455 @@
+openapi: 3.0.3
+info:
+  title: Gym & Fitness Platform API
+  description: REST API for the Gym & Fitness Platform (Admin / Trainer / Member RBAC)
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000/api
+    description: Local development
+  - url: https://your-backend-url.onrender.com/api
+    description: Production
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Memberships
+  - name: Exercises
+  - name: Workout Plans
+  - name: Classes
+  - name: Attendance
+  - name: Progress
+  - name: Dashboard
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        full_name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [admin, trainer, member] }
+        phone: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+    AuthResponse:
+      type: object
+      properties:
+        user: { $ref: '#/components/schemas/User' }
+        token: { type: string }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new member account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, email, password]
+              properties:
+                fullName: { type: string }
+                email: { type: string }
+                password: { type: string, format: password, minLength: 8 }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '409': { description: Email already registered }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive a JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Invalid credentials }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the current authenticated user's profile
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users (Admin/Trainer only) — paginated, searchable, sortable
+      parameters:
+        - in: query
+          name: role
+          schema: { type: string, enum: [admin, trainer, member] }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 10 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [created_at, full_name, email, role] }
+        - in: query
+          name: order
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Users]
+      summary: Create a user directly (Admin only — sets any role)
+      responses:
+        '201': { description: Created }
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get a user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    put:
+      tags: [Users]
+      summary: Update a user's profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Users]
+      summary: Deactivate a user (soft delete, Admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: No Content }
+
+  /memberships/plans:
+    get:
+      tags: [Memberships]
+      summary: List membership plans
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Memberships]
+      summary: Create a membership plan (Admin only)
+      responses:
+        '201': { description: Created }
+
+  /memberships:
+    get:
+      tags: [Memberships]
+      summary: List memberships (own for Member role; filterable for Admin/Trainer)
+      parameters:
+        - in: query
+          name: memberId
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, expired, pending, cancelled] }
+      responses:
+        '200': { description: OK }
+
+  /memberships/assign:
+    post:
+      tags: [Memberships]
+      summary: Assign a membership plan to a member (Admin only)
+      responses:
+        '201': { description: Created }
+
+  /memberships/{id}/status:
+    patch:
+      tags: [Memberships]
+      summary: Update a membership's status (Admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+
+  /exercises:
+    get:
+      tags: [Exercises]
+      summary: List/search the exercise library
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: muscle
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Exercises]
+      summary: Create an exercise (Trainer/Admin)
+      responses:
+        '201': { description: Created }
+
+  /exercises/{id}:
+    put:
+      tags: [Exercises]
+      summary: Update an exercise (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Exercises]
+      summary: Delete an exercise (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: No Content }
+
+  /workout-plans:
+    get:
+      tags: [Workout Plans]
+      summary: List workout plans (Members see only their own)
+      parameters:
+        - in: query
+          name: memberId
+          schema: { type: integer }
+        - in: query
+          name: trainerId
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Workout Plans]
+      summary: Create a workout plan with linked exercises (Trainer/Admin)
+      responses:
+        '201': { description: Created }
+
+  /workout-plans/{id}:
+    get:
+      tags: [Workout Plans]
+      summary: Get a workout plan with its exercises
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Workout Plans]
+      summary: Delete a workout plan (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: No Content }
+
+  /classes:
+    get:
+      tags: [Classes]
+      summary: List scheduled classes (filterable, paginated)
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: trainerId
+          schema: { type: integer }
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Classes]
+      summary: Schedule a new class (Trainer/Admin)
+      responses:
+        '201': { description: Created }
+
+  /classes/{id}:
+    put:
+      tags: [Classes]
+      summary: Update a scheduled class (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    delete:
+      tags: [Classes]
+      summary: Cancel/delete a scheduled class (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: No Content }
+
+  /attendance:
+    get:
+      tags: [Attendance]
+      summary: List attendance/bookings (Members see only their own)
+      parameters:
+        - in: query
+          name: classScheduleId
+          schema: { type: integer }
+        - in: query
+          name: memberId
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+
+  /attendance/book:
+    post:
+      tags: [Attendance]
+      summary: Book a class (Member only)
+      responses:
+        '201': { description: Created }
+
+  /attendance/{id}/check-in:
+    patch:
+      tags: [Attendance]
+      summary: Check in a member at the door (Trainer/Admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+
+  /attendance/{id}/cancel:
+    patch:
+      tags: [Attendance]
+      summary: Cancel a booking
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+
+  /progress:
+    get:
+      tags: [Progress]
+      summary: Get a member's progress history (for charting)
+      parameters:
+        - in: query
+          name: memberId
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Progress]
+      summary: Log a new progress entry (weight, body fat %, goal)
+      responses:
+        '201': { description: Created }
+
+  /progress/bmi:
+    post:
+      tags: [Progress]
+      summary: Instant BMI calculator (no DB write)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [weightKg, heightCm]
+              properties:
+                weightKg: { type: number }
+                heightCm: { type: number }
+      responses:
+        '200': { description: OK }
+
+  /dashboard/admin:
+    get:
+      tags: [Dashboard]
+      summary: Admin analytics — total members, revenue, membership status breakdown, attendance trend
+      responses:
+        '200': { description: OK }
+
+  /dashboard/trainer:
+    get:
+      tags: [Dashboard]
+      summary: Trainer summary — assigned members, upcoming classes, recent plans
+      responses:
+        '200': { description: OK }
+
+  /dashboard/member:
+    get:
+      tags: [Dashboard]
+      summary: Member summary — membership status, workout plans, upcoming classes, progress history
+      responses:
+        '200': { description: OK }
