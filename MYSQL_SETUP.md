@@ -233,13 +233,13 @@ INSERT INTO membership_plans (name, description, price, duration_days) VALUES
 
 ### 4.3 Import a MySQL schema file
 
-If you save the converted schema as `backend/database/schema_mysql.sql`, load it with:
+Use the MySQL-compatible schema file at `backend/database/schema_mysql.sql`.
 
 ```bash
 mysql -u gym_user -p gym_fitness_db < backend/database/schema_mysql.sql
 ```
 
-If you want to use the existing PostgreSQL file for reference only, do not import it directly into MySQL.
+Do not import the PostgreSQL schema file directly into MySQL; it is for reference only.
 
 ## 5. Configure backend environment variables
 
