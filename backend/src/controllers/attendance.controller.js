@@ -8,7 +8,7 @@ async function book(req, res) {
   try {
     const cls = await pool.query(
       `SELECT cs.capacity,
-              (SELECT COUNT(*)::int FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked
+              (SELECT COUNT(*) FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked
        FROM class_schedules cs WHERE cs.id = $1`,
       [classScheduleId]
     );
@@ -17,13 +17,17 @@ async function book(req, res) {
       return res.status(400).json({ error: 'Class is at full capacity' });
     }
 
-    const result = await pool.query(
+    await pool.query(
       `INSERT INTO attendance (class_schedule_id, member_id) VALUES ($1, $2)
-       ON CONFLICT (class_schedule_id, member_id) DO UPDATE SET status = 'booked'
-       RETURNING *`,
+       ON DUPLICATE KEY UPDATE status = 'booked'`,
       [classScheduleId, memberId]
     );
-    res.status(201).json(result.rows[0]);
+
+    const attendanceResult = await pool.query(
+      `SELECT * FROM attendance WHERE class_schedule_id = $1 AND member_id = $2`,
+      [classScheduleId, memberId]
+    );
+    res.status(201).json(attendanceResult.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to book class' });
@@ -33,8 +37,12 @@ async function book(req, res) {
 // PATCH /api/attendance/:id/check-in  (trainer/admin marks a member present)
 async function checkIn(req, res) {
   try {
+    await pool.query(
+      `UPDATE attendance SET status = 'checked_in', checked_in_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
     const result = await pool.query(
-      `UPDATE attendance SET status = 'checked_in', checked_in_at = NOW() WHERE id = $1 RETURNING *`,
+      `SELECT * FROM attendance WHERE id = $1`,
       [req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Booking not found' });
@@ -49,8 +57,12 @@ async function checkIn(req, res) {
 // PATCH /api/attendance/:id/cancel
 async function cancel(req, res) {
   try {
+    await pool.query(
+      `UPDATE attendance SET status = 'cancelled' WHERE id = $1`,
+      [req.params.id]
+    );
     const result = await pool.query(
-      `UPDATE attendance SET status = 'cancelled' WHERE id = $1 RETURNING *`,
+      `SELECT * FROM attendance WHERE id = $1`,
       [req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Booking not found' });

@@ -1,24 +1,62 @@
+const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Prefer a single DATABASE_URL (works out of the box with Render/Railway/Neon),
-// fall back to discrete DB_* vars for local setups.
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    })
-  : new Pool({
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    });
+const dbType = process.env.DB_TYPE || 'postgres';
+let pool;
 
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle PostgreSQL client', err);
-  process.exit(1);
-});
+if (dbType === 'mysql') {
+  const mysqlPool = mysql.createPool({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+
+  const wrapQuery = async (sql, params) => {
+    const formattedSql = sql.replace(/\$([0-9]+)/g, '?');
+    const [rows] = await mysqlPool.query(formattedSql, params);
+    if (Array.isArray(rows)) return { rows, rowCount: rows.length };
+    return { rows: [], rowCount: rows.affectedRows ?? 0, insertId: rows.insertId ?? null };
+  };
+
+  pool = {
+    query: wrapQuery,
+    connect: async () => {
+      const conn = await mysqlPool.getConnection();
+      const connQuery = async (sql, params) => {
+        const formattedSql = sql.replace(/\$([0-9]+)/g, '?');
+        const [rows] = await conn.query(formattedSql, params);
+        if (Array.isArray(rows)) return { rows, rowCount: rows.length };
+        return { rows: [], rowCount: rows.affectedRows ?? 0, insertId: rows.insertId ?? null };
+      };
+      conn.query = connQuery;
+      return conn;
+    },
+    end: mysqlPool.end.bind(mysqlPool),
+  };
+} else {
+  pool = process.env.DATABASE_URL
+    ? new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      })
+    : new Pool({
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+      });
+
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle PostgreSQL client', err);
+    process.exit(1);
+  });
+}
 
 module.exports = pool;

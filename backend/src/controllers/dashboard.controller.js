@@ -4,13 +4,13 @@ const pool = require('../config/db');
 async function adminSummary(req, res) {
   try {
     const [members, revenue, statusBreakdown, attendanceTrend] = await Promise.all([
-      pool.query(`SELECT COUNT(*)::int AS total FROM users WHERE role = 'member'`),
-      pool.query(`SELECT COALESCE(SUM(amount_paid), 0)::float AS total FROM memberships`),
-      pool.query(`SELECT status, COUNT(*)::int AS count FROM memberships GROUP BY status`),
+      pool.query(`SELECT COUNT(*) AS total FROM users WHERE role = 'member'`),
+      pool.query(`SELECT COALESCE(SUM(amount_paid), 0) AS total FROM memberships`),
+      pool.query(`SELECT status, COUNT(*) AS count FROM memberships GROUP BY status`),
       pool.query(`
-        SELECT DATE(checked_in_at) AS day, COUNT(*)::int AS count
+        SELECT DATE(checked_in_at) AS day, COUNT(*) AS count
         FROM attendance
-        WHERE checked_in_at IS NOT NULL AND checked_in_at >= NOW() - INTERVAL '14 days'
+        WHERE checked_in_at IS NOT NULL AND checked_in_at >= NOW() - INTERVAL 14 DAY
         GROUP BY DATE(checked_in_at) ORDER BY day ASC`),
     ]);
 

@@ -15,11 +15,12 @@ async function listPlans(req, res) {
 async function createPlan(req, res) {
   const { name, description, price, durationDays } = req.body;
   try {
-    const result = await pool.query(
-      `INSERT INTO membership_plans (name, description, price, duration_days) VALUES ($1, $2, $3, $4) RETURNING *`,
+    const insertResult = await pool.query(
+      `INSERT INTO membership_plans (name, description, price, duration_days) VALUES ($1, $2, $3, $4)`,
       [name, description || null, price, durationDays]
     );
-    res.status(201).json(result.rows[0]);
+    const created = await pool.query('SELECT * FROM membership_plans WHERE id = $1', [insertResult.insertId]);
+    res.status(201).json(created.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create plan' });
@@ -39,12 +40,13 @@ async function assign(req, res) {
     const end = new Date(start);
     end.setDate(end.getDate() + plan.rows[0].duration_days);
 
-    const result = await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO memberships (member_id, membership_plan_id, start_date, end_date, status, amount_paid)
-       VALUES ($1, $2, $3, $4, 'active', $5) RETURNING *`,
+       VALUES ($1, $2, $3, $4, 'active', $5)`,
       [memberId, membershipPlanId, start, end, amountPaid || 0]
     );
-    res.status(201).json(result.rows[0]);
+    const created = await pool.query('SELECT * FROM memberships WHERE id = $1', [insertResult.insertId]);
+    res.status(201).json(created.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to assign membership' });
@@ -86,10 +88,11 @@ async function list(req, res) {
 async function updateStatus(req, res) {
   const { status } = req.body;
   try {
-    const result = await pool.query(
-      `UPDATE memberships SET status = $1 WHERE id = $2 RETURNING *`,
+    await pool.query(
+      `UPDATE memberships SET status = $1 WHERE id = $2`,
       [status, req.params.id]
     );
+    const result = await pool.query('SELECT * FROM memberships WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Membership not found' });
     res.json(result.rows[0]);
   } catch (err) {

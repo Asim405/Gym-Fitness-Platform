@@ -68,10 +68,10 @@ async function create(req, res) {
 
     const planResult = await client.query(
       `INSERT INTO workout_plans (title, description, trainer_id, member_id, start_date, end_date)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6)`,
       [title, description || null, req.user.id, memberId || null, startDate || null, endDate || null]
     );
-    const plan = planResult.rows[0];
+    const plan = await client.query('SELECT * FROM workout_plans WHERE id = $1', [planResult.insertId]);
 
     for (const ex of exercises) {
       await client.query(
@@ -94,8 +94,8 @@ async function create(req, res) {
 
 async function remove(req, res) {
   try {
-    const result = await pool.query('DELETE FROM workout_plans WHERE id = $1 RETURNING id', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Plan not found' });
+    const result = await pool.query('DELETE FROM workout_plans WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Plan not found' });
     res.status(204).send();
   } catch (err) {
     console.error(err);

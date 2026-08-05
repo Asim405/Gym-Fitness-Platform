@@ -34,12 +34,13 @@ async function list(req, res) {
 async function create(req, res) {
   const { title, startTime, endTime, capacity, location } = req.body;
   try {
-    const result = await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO class_schedules (title, trainer_id, start_time, end_time, capacity, location)
-       VALUES ($1, $2, $3, $4, COALESCE($5, 20), $6) RETURNING *`,
+       VALUES ($1, $2, $3, $4, COALESCE($5, 20), $6)`,
       [title, req.user.id, startTime, endTime, capacity, location || null]
     );
-    res.status(201).json(result.rows[0]);
+    const classResult = await pool.query('SELECT * FROM class_schedules WHERE id = $1', [insertResult.insertId]);
+    res.status(201).json(classResult.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create class' });
@@ -49,13 +50,14 @@ async function create(req, res) {
 async function update(req, res) {
   const { title, startTime, endTime, capacity, location } = req.body;
   try {
-    const result = await pool.query(
+    await pool.query(
       `UPDATE class_schedules SET
          title = COALESCE($1, title), start_time = COALESCE($2, start_time),
          end_time = COALESCE($3, end_time), capacity = COALESCE($4, capacity), location = COALESCE($5, location)
-       WHERE id = $6 RETURNING *`,
+       WHERE id = $6`,
       [title, startTime, endTime, capacity, location, req.params.id]
     );
+    const result = await pool.query('SELECT * FROM class_schedules WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Class not found' });
     res.json(result.rows[0]);
   } catch (err) {
@@ -66,8 +68,8 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
-    const result = await pool.query('DELETE FROM class_schedules WHERE id = $1 RETURNING id', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Class not found' });
+    const result = await pool.query('DELETE FROM class_schedules WHERE id = $1', [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Class not found' });
     res.status(204).send();
   } catch (err) {
     console.error(err);

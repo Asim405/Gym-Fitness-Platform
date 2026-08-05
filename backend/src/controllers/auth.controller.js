@@ -25,14 +25,19 @@ async function register(req, res) {
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const result = await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO users (full_name, email, password_hash, role)
-       VALUES ($1, $2, $3, 'member')
-       RETURNING id, full_name, email, role, created_at`,
+       VALUES ($1, $2, $3, 'member')`,
       [fullName, email, passwordHash]
     );
 
-    const user = result.rows[0];
+    const userResult = await pool.query(
+      `SELECT id, full_name, email, role, created_at
+       FROM users WHERE id = $1`,
+      [insertResult.insertId]
+    );
+
+    const user = userResult.rows[0];
     const token = signToken(user);
     await logActivity({ userId: user.id, action: 'REGISTER', ip: req.ip });
 

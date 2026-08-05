@@ -17,12 +17,13 @@ async function create(req, res) {
     const heightCm = userResult.rows[0]?.height_cm;
     const bmi = calcBmi(weightKg, heightCm);
 
-    const result = await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO progress_metrics (member_id, weight_kg, body_fat_pct, bmi, goal_note, recorded_at)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE)) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE))`,
       [memberId, weightKg, bodyFatPct || null, bmi, goalNote || null, recordedAt || null]
     );
-    res.status(201).json(result.rows[0]);
+    const created = await pool.query('SELECT * FROM progress_metrics WHERE id = $1', [insertResult.insertId]);
+    res.status(201).json(created.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to log progress' });

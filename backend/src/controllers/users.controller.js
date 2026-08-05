@@ -80,15 +80,15 @@ async function create(req, res) {
     if (existing.rows.length) return res.status(409).json({ error: 'Email already registered' });
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const result = await pool.query(
+    const insertResult = await pool.query(
       `INSERT INTO users (full_name, email, password_hash, role, phone)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, full_name, email, role, phone, created_at`,
+       VALUES ($1, $2, $3, $4, $5)`,
       [fullName, email, passwordHash, role, phone || null]
     );
+    const created = await pool.query('SELECT id, full_name, email, role, phone, created_at FROM users WHERE id = $1', [insertResult.insertId]);
 
-    await logActivity({ userId: req.user.id, action: 'USER_CREATED', details: { targetUserId: result.rows[0].id, role } });
-    res.status(201).json(result.rows[0]);
+    await logActivity({ userId: req.user.id, action: 'USER_CREATED', details: { targetUserId: created.rows[0].id, role } });
+    res.status(201).json(created.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create user' });
@@ -99,7 +99,7 @@ async function create(req, res) {
 async function update(req, res) {
   const { fullName, phone, dateOfBirth, gender, heightCm, isActive } = req.body;
   try {
-    const result = await pool.query(
+    await pool.query(
       `UPDATE users SET
          full_name = COALESCE($1, full_name),
          phone = COALESCE($2, phone),
@@ -108,9 +108,13 @@ async function update(req, res) {
          height_cm = COALESCE($5, height_cm),
          is_active = COALESCE($6, is_active),
          updated_at = NOW()
-       WHERE id = $7
-       RETURNING id, full_name, email, role, phone, date_of_birth, gender, height_cm, is_active`,
+       WHERE id = $7`,
       [fullName, phone, dateOfBirth, gender, heightCm, isActive, req.params.id]
+    );
+    const result = await pool.query(
+      `SELECT id, full_name, email, role, phone, date_of_birth, gender, height_cm, is_active
+       FROM users WHERE id = $1`,
+      [req.params.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
 
@@ -125,10 +129,11 @@ async function update(req, res) {
 // DELETE /api/users/:id  (soft delete via is_active = false)
 async function remove(req, res) {
   try {
-    const result = await pool.query(
-      `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 RETURNING id`,
+    await pool.query(
+      `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1`,
       [req.params.id]
     );
+    const result = await pool.query('SELECT id FROM users WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'User not found' });
 
     await logActivity({ userId: req.user.id, action: 'USER_DEACTIVATED', details: { targetUserId: req.params.id } });
