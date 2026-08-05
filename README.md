@@ -61,6 +61,8 @@ createdb gym_fitness_db
 psql -d gym_fitness_db -f backend/database/schema.sql
 ```
 
+> For a separate MySQL setup guide, see `MYSQL_SETUP.md`.
+
 ### 3. Backend setup
 
 ```bash
