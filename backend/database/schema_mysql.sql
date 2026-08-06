@@ -71,7 +71,7 @@ CREATE TABLE exercises (
   media_url VARCHAR(500),
   difficulty VARCHAR(20) NOT NULL DEFAULT 'beginner',
   created_by INT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   CHECK (difficulty IN ('beginner', 'intermediate', 'advanced')),
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
