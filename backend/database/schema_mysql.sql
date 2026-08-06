@@ -26,7 +26,7 @@ CREATE TABLE users (
   height_cm DECIMAL(5,2),
   profile_image VARCHAR(255),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CHECK (role IN ('admin', 'trainer', 'member'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -40,7 +40,7 @@ CREATE TABLE membership_plans (
   description TEXT,
   price DECIMAL(10,2) NOT NULL,
   duration_days INT NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP),
   CHECK (price >= 0),
   CHECK (duration_days > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
