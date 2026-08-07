@@ -25,4 +25,5 @@ start();
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled promise rejection:', err);
+  console.error('Shutting down the server due to unhandled promise rejection');
 });
