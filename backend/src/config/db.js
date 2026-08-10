@@ -8,8 +8,8 @@ const dbType = process.env.DB_TYPE || 'postgres';
 let pool;
 
 if (dbType === 'mysql') {
-  // Path to the downloaded Aiven CA certificate
-  const caPath = path.join(__dirname, '../certs/ca.pem');
+  // Updated path to point to backend/ssl/ca.pem
+  const caPath = path.join(__dirname, '../../ssl/ca.pem');
 
   const mysqlPool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -22,7 +22,7 @@ if (dbType === 'mysql') {
     queueLimit: 0,
     ssl: fs.existsSync(caPath)
       ? { ca: fs.readFileSync(caPath) }
-      : { rejectUnauthorized: false }, // Fallback if file is missing locally
+      : { rejectUnauthorized: false },
   });
 
   const wrapQuery = async (sql, params) => {

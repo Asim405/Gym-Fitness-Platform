@@ -1,33 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-// Dynamically locate config/db.js regardless of script position
-let dbPath = '../config/db';
-if (fs.existsSync(path.join(__dirname, 'config/db.js'))) {
-  dbPath = './config/db';
-} else if (fs.existsSync(path.join(__dirname, '../config/db.js'))) {
-  dbPath = '../config/db';
-}
-
-const pool = require(dbPath);
+// Require db.js from src/config/db
+const pool = require('../src/config/db');
 
 async function importSchema() {
   try {
-    // Dynamically locate database/schema_mysql.sql
-    let schemaPath = path.join(__dirname, '../database/schema_mysql.sql');
+    const schemaPath = path.join(__dirname, '../database/schema_mysql.sql');
+
     if (!fs.existsSync(schemaPath)) {
-      schemaPath = path.join(__dirname, 'database/schema_mysql.sql');
-    }
-    
-    if (!fs.existsSync(schemaPath)) {
-      console.error(`❌ Schema file not found. Checked path: ${schemaPath}`);
+      console.error(`❌ Schema file not found at: ${schemaPath}`);
       process.exit(1);
     }
 
     console.log(`⏳ Reading schema file from: ${schemaPath}`);
     const sqlContent = fs.readFileSync(schemaPath, 'utf8');
 
-    // Split queries safely by semicolon
     const queries = sqlContent
       .split(';')
       .map(q => q.trim())
