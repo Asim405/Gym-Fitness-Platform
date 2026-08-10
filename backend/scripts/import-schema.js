@@ -1,11 +1,10 @@
-// backend/scripts/import-schema.js
 const fs = require('fs');
 const path = require('path');
 const pool = require('../config/db');
 
 async function importSchema() {
   try {
-    // Apne schema.sql file ka exact path yahan dein
+    // Relative path (recommended)
     const schemaPath = path.join(__dirname, '../database/schema_mysql.sql');
     
     if (!fs.existsSync(schemaPath)) {
@@ -16,7 +15,7 @@ async function importSchema() {
     console.log('⏳ Reading schema file...');
     const sqlContent = fs.readFileSync(schemaPath, 'utf8');
 
-    // Individual SQL queries me split karein
+    // Split queries by semicolon
     const queries = sqlContent
       .split(';')
       .map(q => q.trim())
