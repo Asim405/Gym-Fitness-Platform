@@ -1,11 +1,16 @@
 const mysql = require('mysql2/promise');
 const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const dbType = process.env.DB_TYPE || 'postgres';
 let pool;
 
 if (dbType === 'mysql') {
+  // Path to the downloaded Aiven CA certificate
+  const caPath = path.join(__dirname, '../certs/ca.pem');
+
   const mysqlPool = mysql.createPool({
     host: process.env.DB_HOST,
     port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306,
@@ -15,6 +20,9 @@ if (dbType === 'mysql') {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    ssl: fs.existsSync(caPath)
+      ? { ca: fs.readFileSync(caPath) }
+      : { rejectUnauthorized: false }, // Fallback if file is missing locally
   });
 
   const wrapQuery = async (sql, params) => {
