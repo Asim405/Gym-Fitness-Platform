@@ -18,12 +18,16 @@ const app = express();
 
 // ---- Global middleware ----
 app.use(helmet());
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    credentials: true,
-  })
-);
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === 'development'
+      ? true
+      : [clientUrl, 'http://127.0.0.1:3000'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 

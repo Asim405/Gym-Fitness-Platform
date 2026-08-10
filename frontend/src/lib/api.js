@@ -17,11 +17,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (typeof window !== 'undefined' && err.response?.status === 401) {
-      localStorage.removeItem('gym_token');
-      localStorage.removeItem('gym_user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      console.error('API Error:', err.response?.status, err.response?.data, err.message);
+      if (err.response?.status === 401) {
+        localStorage.removeItem('gym_token');
+        localStorage.removeItem('gym_user');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(err);

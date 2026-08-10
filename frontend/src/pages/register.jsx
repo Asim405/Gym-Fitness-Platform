@@ -20,7 +20,13 @@ export default function Register() {
       const user = await register(fullName, email, password);
       router.push(homeForRole(user.role));
     } catch (err) {
-      setError(err.response?.data?.error || 'Registration failed.');
+      const message =
+        err.response?.data?.error ||
+        err.response?.data?.errors?.[0]?.message ||
+        err.message ||
+        'Registration failed.';
+      setError(message);
+      console.error('Registration error:', err);
     } finally {
       setBusy(false);
     }
