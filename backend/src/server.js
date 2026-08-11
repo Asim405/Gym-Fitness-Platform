@@ -39,7 +39,6 @@ async function start() {
 
     app.listen(PORT, () => {
       console.log(`🚀 Gym & Fitness Platform API running on port ${PORT}`);
-      console.log(`   Health check: http://localhost:${PORT}/health`);
       console.log(`   API docs:     http://localhost:${PORT}/api-docs`);
     });
   } catch (err) {
