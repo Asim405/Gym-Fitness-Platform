@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 export default function Login() {
   const { login, homeForRole } = useAuth();
   const router = useRouter();
+  const [selectedRole, setSelectedRole] = useState('member');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -46,8 +47,18 @@ export default function Login() {
       <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5">
           <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-white">Welcome back</h2>
-            <p className="text-slate-400 text-sm mt-1">Sign in to your account</p>
+            <h2 className="text-2xl font-semibold text-white">
+              {selectedRole === 'member'
+                ? 'Member sign in'
+                : selectedRole === 'trainer'
+                ? 'Trainer sign in'
+                : 'Admin sign in'}
+            </h2>
+            <p className="text-slate-400 text-sm mt-1">
+              {selectedRole === 'member'
+                ? 'Sign in with your member credentials.'
+                : 'Use your admin or trainer panel credentials.'}
+            </p>
           </div>
 
           {error && (
@@ -64,7 +75,13 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              placeholder="you@example.com"
+              placeholder={
+                selectedRole === 'member'
+                  ? 'member@example.com'
+                  : selectedRole === 'trainer'
+                  ? 'trainer@example.com'
+                  : 'admin@example.com'
+              }
             />
           </div>
 
@@ -88,10 +105,46 @@ export default function Login() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
 
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedRole('member')}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                selectedRole === 'member'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Member
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRole('trainer')}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                selectedRole === 'trainer'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Trainer
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedRole('admin')}
+              className={`rounded-md py-2 text-sm font-medium transition-colors ${
+                selectedRole === 'admin'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}
+            >
+              Admin
+            </button>
+          </div>
+
           <p className="text-sm text-slate-400 text-center">
             New here?{' '}
             <Link href="/register" className="text-emerald-400 hover:text-emerald-300">
-              Create an account
+              Create a member account
             </Link>
           </p>
         </form>

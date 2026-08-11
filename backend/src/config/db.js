@@ -48,7 +48,7 @@ if (dbType === 'mysql') {
     end: mysqlPool.end.bind(mysqlPool),
   };
 } else {
-  pool = process.env.DATABASE_URL
+  const pgPool = process.env.DATABASE_URL
     ? new Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
@@ -60,6 +60,23 @@ if (dbType === 'mysql') {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
       });
+
+  const formatPgResult = (result) => ({
+    ...result,
+    insertId: result.rows?.[0]?.id ?? null,
+  });
+
+  pool = {
+    query: async (sql, params) => formatPgResult(await pgPool.query(sql, params)),
+    connect: async () => {
+      const conn = await pgPool.connect();
+      const originalQuery = conn.query.bind(conn);
+      conn.query = async (sql, params) => formatPgResult(await originalQuery(sql, params));
+      return conn;
+    },
+    end: pgPool.end.bind(pgPool),
+    on: pgPool.on.bind(pgPool),
+  };
 
   pool.on('error', (err) => {
     console.error('Unexpected error on idle PostgreSQL client', err);
