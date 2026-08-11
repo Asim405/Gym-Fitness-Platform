@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\Asim sultan\\\\Desktop\\\\gym-fitness-platform\"; node -c backend/src/controllers/attendance\\.controller\\.js backend/src/routes/attendance\\.routes\\.js backend/src/routes/classes\\.routes\\.js backend/src/controllers/dashboard\\.controller\\.js backend/src/controllers/payments\\.controller\\.js backend/src/controllers/inventory\\.controller\\.js backend/src/controllers/dietPlans\\.controller\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

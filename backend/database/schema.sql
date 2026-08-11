@@ -169,11 +169,77 @@ CREATE TABLE progress_metrics (
     body_fat_pct    NUMERIC(5,2),
     bmi             NUMERIC(5,2),
     goal_note       VARCHAR(255),
+    photo_url       VARCHAR(500),
     recorded_at     DATE NOT NULL DEFAULT CURRENT_DATE
 );
 
 CREATE INDEX idx_progress_member ON progress_metrics(member_id);
 CREATE INDEX idx_progress_date   ON progress_metrics(recorded_at);
+
+-- ============================================================
+-- INVENTORY ITEMS
+-- ============================================================
+CREATE TABLE inventory_items (
+    id               SERIAL PRIMARY KEY,
+    name             VARCHAR(150) NOT NULL,
+    category         VARCHAR(80),
+    quantity         INTEGER NOT NULL DEFAULT 0,
+    status           VARCHAR(30) NOT NULL DEFAULT 'available',
+    notes            TEXT,
+    last_maintenance DATE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (quantity >= 0),
+    CHECK (status IN ('available', 'maintenance', 'out_of_stock'))
+);
+
+CREATE INDEX idx_inventory_status ON inventory_items(status);
+CREATE INDEX idx_inventory_category ON inventory_items(category);
+
+-- ============================================================
+-- DIET PLANS
+-- ============================================================
+CREATE TABLE diet_plans (
+    id          SERIAL PRIMARY KEY,
+    member_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title       VARCHAR(150) NOT NULL,
+    notes       TEXT,
+    calories    INTEGER,
+    protein     INTEGER,
+    carbs       INTEGER,
+    fats        INTEGER,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE diet_plan_entries (
+    id           SERIAL PRIMARY KEY,
+    diet_plan_id INTEGER NOT NULL REFERENCES diet_plans(id) ON DELETE CASCADE,
+    meal_time    VARCHAR(80) NOT NULL,
+    name         VARCHAR(150) NOT NULL,
+    description  TEXT,
+    calories     INTEGER,
+    protein      INTEGER,
+    carbs        INTEGER,
+    fats         INTEGER,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================
+-- PAYMENTS / BILLING
+-- ============================================================
+CREATE TABLE payments (
+    id             SERIAL PRIMARY KEY,
+    member_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount         NUMERIC(10,2) NOT NULL,
+    payment_method VARCHAR(80) NOT NULL,
+    reference      VARCHAR(200),
+    notes          TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_payments_member ON payments(member_id);
+CREATE INDEX idx_payments_created_at ON payments(created_at);
 
 -- ============================================================
 -- ACTIVITY LOGS  (audit trail for critical actions)

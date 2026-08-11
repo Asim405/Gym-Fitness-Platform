@@ -11,6 +11,9 @@ const exerciseRoutes = require('./routes/exercises.routes');
 const workoutPlanRoutes = require('./routes/workoutPlans.routes');
 const classRoutes = require('./routes/classes.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
+const inventoryRoutes = require('./routes/inventory.routes');
+const dietPlansRoutes = require('./routes/dietPlans.routes');
+const paymentsRoutes = require('./routes/payments.routes');
 const progressRoutes = require('./routes/progress.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 
@@ -42,6 +45,9 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/workout-plans', workoutPlanRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/diet-plans', dietPlansRoutes);
+app.use('/api/payments', paymentsRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 

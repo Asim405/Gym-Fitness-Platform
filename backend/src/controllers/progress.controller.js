@@ -9,7 +9,7 @@ function calcBmi(weightKg, heightCm) {
 // POST /api/progress  { weightKg, bodyFatPct, goalNote, recordedAt }
 // Members log their own metrics; height comes from their profile for BMI.
 async function create(req, res) {
-  const { weightKg, bodyFatPct, goalNote, recordedAt } = req.body;
+  const { weightKg, bodyFatPct, goalNote, recordedAt, photoUrl } = req.body;
   const memberId = req.user.role === 'member' ? req.user.id : req.body.memberId;
 
   try {
@@ -18,9 +18,9 @@ async function create(req, res) {
     const bmi = calcBmi(weightKg, heightCm);
 
     const insertResult = await pool.query(
-      `INSERT INTO progress_metrics (member_id, weight_kg, body_fat_pct, bmi, goal_note, recorded_at)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE))`,
-      [memberId, weightKg, bodyFatPct || null, bmi, goalNote || null, recordedAt || null]
+      `INSERT INTO progress_metrics (member_id, weight_kg, body_fat_pct, bmi, goal_note, photo_url, recorded_at)
+       VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, CURRENT_DATE))`,
+      [memberId, weightKg, bodyFatPct || null, bmi, goalNote || null, photoUrl || null, recordedAt || null]
     );
     const created = await pool.query('SELECT * FROM progress_metrics WHERE id = $1', [insertResult.insertId]);
     res.status(201).json(created.rows[0]);

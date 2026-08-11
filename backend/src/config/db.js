@@ -84,4 +84,4 @@ if (dbType === 'mysql') {
   });
 }
 
-module.exports = pool;
+module.exports = { ...pool, dbType };

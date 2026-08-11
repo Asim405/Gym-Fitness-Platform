@@ -152,12 +152,72 @@ CREATE TABLE progress_metrics (
   body_fat_pct DECIMAL(5,2),
   bmi DECIMAL(5,2),
   goal_note VARCHAR(255),
+  photo_url VARCHAR(500),
   recorded_at DATE NOT NULL DEFAULT (CURRENT_DATE),
   FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_progress_member ON progress_metrics(member_id);
 CREATE INDEX idx_progress_date ON progress_metrics(recorded_at);
+
+CREATE TABLE inventory_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  category VARCHAR(80),
+  quantity INT NOT NULL DEFAULT 0,
+  status VARCHAR(30) NOT NULL DEFAULT 'available',
+  notes TEXT,
+  last_maintenance DATE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CHECK (quantity >= 0),
+  CHECK (status IN ('available', 'maintenance', 'out_of_stock'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_inventory_status ON inventory_items(status);
+CREATE INDEX idx_inventory_category ON inventory_items(category);
+
+CREATE TABLE diet_plans (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  title VARCHAR(150) NOT NULL,
+  notes TEXT,
+  calories INT,
+  protein INT,
+  carbs INT,
+  fats INT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE diet_plan_entries (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  diet_plan_id INT NOT NULL,
+  meal_time VARCHAR(80) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  description TEXT,
+  calories INT,
+  protein INT,
+  carbs INT,
+  fats INT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (diet_plan_id) REFERENCES diet_plans(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE payments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  member_id INT NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  payment_method VARCHAR(80) NOT NULL,
+  reference VARCHAR(200),
+  notes TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_payments_member ON payments(member_id);
+CREATE INDEX idx_payments_created_at ON payments(created_at);
 
 CREATE TABLE activity_logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
