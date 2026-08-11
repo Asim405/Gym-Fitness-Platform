@@ -21,7 +21,7 @@ async function list(req, res) {
   }
   if (search) {
     params.push(`%${search}%`);
-    conditions.push(`(full_name ILIKE $${params.length} OR email ILIKE $${params.length})`);
+    conditions.push(`(LOWER(full_name) LIKE LOWER($${params.length}) OR LOWER(email) LIKE LOWER($${params.length}))`);
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -34,7 +34,7 @@ async function list(req, res) {
       FROM users ${where}
       ORDER BY ${sortCol} ${sortOrder}
       LIMIT $${params.length - 1} OFFSET $${params.length}`;
-    const countQuery = `SELECT COUNT(*)::int AS total FROM users ${where}`;
+    const countQuery = `SELECT COUNT(*) AS total FROM users ${where}`;
 
     const [dataResult, countResult] = await Promise.all([
       pool.query(dataQuery, params),
@@ -99,6 +99,10 @@ async function create(req, res) {
 async function update(req, res) {
   const { fullName, phone, dateOfBirth, gender, heightCm, isActive } = req.body;
   try {
+    if (req.user.role === 'member' && req.user.id !== Number(req.params.id)) {
+      return res.status(403).json({ error: 'Members may only update their own profile' });
+    }
+
     await pool.query(
       `UPDATE users SET
          full_name = COALESCE($1, full_name),

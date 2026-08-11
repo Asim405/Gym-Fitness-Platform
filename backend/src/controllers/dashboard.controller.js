@@ -10,7 +10,7 @@ async function adminSummary(req, res) {
       pool.query(`
         SELECT DATE(checked_in_at) AS day, COUNT(*) AS count
         FROM attendance
-        WHERE checked_in_at IS NOT NULL AND checked_in_at >= NOW() - INTERVAL 14 DAY
+        WHERE checked_in_at IS NOT NULL AND checked_in_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
         GROUP BY DATE(checked_in_at) ORDER BY day ASC`),
     ]);
 

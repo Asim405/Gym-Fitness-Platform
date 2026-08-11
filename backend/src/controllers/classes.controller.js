@@ -17,7 +17,7 @@ async function list(req, res) {
   try {
     const data = await pool.query(
       `SELECT cs.*, u.full_name AS trainer_name,
-              (SELECT COUNT(*)::int FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked_count
+              (SELECT COUNT(*) FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked_count
        FROM class_schedules cs
        JOIN users u ON u.id = cs.trainer_id
        ${where}
