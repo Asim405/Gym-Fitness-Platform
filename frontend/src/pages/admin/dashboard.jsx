@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ResponsiveContainer,
   LineChart,
@@ -88,6 +89,7 @@ function AdminDashboardContent() {
                 <h3 className="font-semibold text-slate-900">Add a new trainer</h3>
                 <p className="text-sm text-slate-500">Create trainer credentials from the admin panel so trainers can log in.</p>
               </div>
+              <Link href="/admin/inventory" className="text-sm text-emerald-600 hover:text-emerald-500">Manage inventory</Link>
             </div>
 
             {createError && (
@@ -161,44 +163,74 @@ function AdminDashboardContent() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Attendance trend */}
+            {/* Monthly revenue */}
             <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <h3 className="font-semibold text-slate-900 mb-4">Daily attendance — last 14 days</h3>
+              <h3 className="font-semibold text-slate-900 mb-4">Monthly revenue</h3>
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={data.dailyAttendanceTrend}>
+                <LineChart data={data.monthlyRevenue}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#059669" strokeWidth={2} dot={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+                  <Line type="monotone" dataKey="total" stroke="#0ea5e9" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Membership status breakdown */}
+            {/* Peak hours */}
             <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <h3 className="font-semibold text-slate-900 mb-4">Membership status breakdown</h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={data.membershipStatusBreakdown}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={60}
-                    outerRadius={95}
-                    paddingAngle={2}
-                  >
-                    {data.membershipStatusBreakdown.map((entry) => (
-                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || '#64748b'} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <h3 className="font-semibold text-slate-900 mb-4">Peak gym check-in hours</h3>
+              <ul className="space-y-3">
+                {data.peakHours.map((hour) => (
+                  <li key={hour.hour} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <span className="text-sm text-slate-700">{`${String(hour.hour).padStart(2, '0')}:00`}</span>
+                    <span className="text-sm font-semibold text-slate-900">{hour.count}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <h3 className="font-semibold text-slate-900 mb-4">Top trainer allocations</h3>
+            <div className="grid gap-3">
+              {data.trainerAllocation.map((trainer) => (
+                <div key={trainer.trainer_id} className="rounded-xl bg-slate-50 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">{trainer.trainer_name}</div>
+                      <div className="text-sm text-slate-500">{trainer.classes_count} classes · {trainer.workout_plans_count} plans</div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{trainer.classes_count + trainer.workout_plans_count} items</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <h3 className="font-semibold text-slate-900 mb-4">Revenue & allocation summary</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard label="Total revenue" value={`$${Number(data.totalRevenue).toLocaleString()}`} accent="sky" />
+              <StatCard label="Active members" value={data.activeMembers} accent="emerald" />
+              <StatCard label="Expired members" value={data.expiredMembers} accent="rose" />
+            </div>
+          </div>
+          
+          <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <h3 className="font-semibold text-slate-900 mb-4">Quick actions</h3>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/admin/inventory" className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
+                Manage inventory
+              </Link>
+              <Link href="/member/invoices" className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500">
+                View payments
+              </Link>
+            </div>
+          </div>
+          
         </div>
+        
       )}
     </DashboardShell>
   );

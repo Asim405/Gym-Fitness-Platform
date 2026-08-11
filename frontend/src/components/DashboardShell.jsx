@@ -5,18 +5,19 @@ import { useAuth } from '../context/AuthContext';
 const NAV = {
   admin: [
     { label: 'Overview', href: '/admin/dashboard' },
-    { label: 'Members & Trainers', href: '/admin/dashboard' },
-    { label: 'Memberships', href: '/admin/dashboard' },
+    { label: 'Inventory', href: '/admin/inventory' },
+    { label: 'Billing', href: '/admin/dashboard' },
   ],
   trainer: [
     { label: 'Overview', href: '/trainer/dashboard' },
-    { label: 'My Members', href: '/trainer/dashboard' },
+    { label: 'Diet plans', href: '/trainer/diet-plans' },
     { label: 'Classes', href: '/trainer/dashboard' },
   ],
   member: [
     { label: 'Overview', href: '/member/dashboard' },
-    { label: 'My Workouts', href: '/member/dashboard' },
-    { label: 'Progress', href: '/member/dashboard' },
+    { label: 'Diet plans', href: '/member/diet-plans' },
+    { label: 'Billing', href: '/member/invoices' },
+    { label: 'QR pass', href: '/member/qrcode' },
   ],
 };
 
