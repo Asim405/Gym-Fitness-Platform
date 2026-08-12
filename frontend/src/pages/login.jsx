@@ -27,127 +27,104 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950">
-      {/* Brand side */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-emerald-700 p-12 text-emerald-50">
-        <div className="text-xl font-bold tracking-tight">PULSE&nbsp;FIT</div>
-        <div>
-          <h1 className="text-4xl font-bold leading-tight mb-4">
-            Track every rep.<br />Measure every result.
-          </h1>
-          <p className="text-emerald-100/80 max-w-sm">
-            The Gym &amp; Fitness Platform for admins, trainers, and members —
-            workouts, classes, attendance, and progress in one place.
-          </p>
-        </div>
-        <p className="text-sm text-emerald-100/60">Gym &amp; Fitness Platform</p>
-      </div>
-
-      {/* Form side */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-8">
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-white">
-              {selectedRole === 'member'
-                ? 'Member sign in'
-                : selectedRole === 'trainer'
-                ? 'Trainer sign in'
-                : 'Admin sign in'}
-            </h2>
-            <p className="text-slate-400 text-sm mt-1">
-              {selectedRole === 'member'
-                ? 'Sign in with your member credentials.'
-                : 'Use your admin or trainer panel credentials.'}
-            </p>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-950 border border-red-800 text-red-300 text-sm px-3 py-2">
-              {error}
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="relative overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.25),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.16),_transparent_25%)]" />
+        <div className="relative mx-auto grid min-h-screen max-w-7xl gap-12 px-6 py-10 lg:grid-cols-2 lg:items-center lg:px-12 lg:py-16">
+          <section className="hidden flex-col justify-center gap-8 rounded-[2rem] border border-slate-800 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/40 lg:flex">
+            <div>
+              <span className="inline-flex rounded-full bg-emerald-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
+                PulseFit
+              </span>
+              <h1 className="mt-8 text-5xl font-semibold tracking-tight text-white">Train harder, recover smarter.</h1>
+              <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+                The modern gym management platform for members, trainers, and admins. Track attendance, plan diets, manage classes, and boost results with one polished experience.
+              </p>
             </div>
-          )}
+            <div className="grid gap-4">
+              <div className="rounded-3xl bg-slate-950/90 border border-slate-800 p-5">
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Smart Tracking</p>
+                <p className="mt-3 font-semibold text-white">Workout plans, attendance, and progress all connected.</p>
+              </div>
+              <div className="rounded-3xl bg-slate-950/90 border border-slate-800 p-5">
+                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Team-ready</p>
+                <p className="mt-3 font-semibold text-white">Trainer and admin tools built for real gym operations.</p>
+              </div>
+            </div>
+          </section>
 
-          <div>
-            <label className="block text-sm text-slate-300 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              placeholder={
-                selectedRole === 'member'
-                  ? 'member@example.com'
-                  : selectedRole === 'trainer'
-                  ? 'trainer@example.com'
-                  : 'admin@example.com'
-              }
-            />
-          </div>
+          <section className="mx-auto w-full max-w-md rounded-[2rem] border border-slate-800 bg-slate-900/95 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur-sm">
+            <div className="mb-8">
+              <p className="text-sm uppercase tracking-[0.3em] text-emerald-300">Welcome back</p>
+              <h2 className="mt-4 text-3xl font-semibold text-white">Sign in to PulseFit</h2>
+              <p className="mt-3 text-sm text-slate-400">Choose your role, then enter your login details to continue.</p>
+            </div>
 
-          <div>
-            <label className="block text-sm text-slate-300 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              placeholder="••••••••"
-            />
-          </div>
+            {error && (
+              <div className="rounded-3xl bg-red-950/80 border border-red-800 px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium py-2.5 transition-colors"
-          >
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-3xl border border-slate-800 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  placeholder="name@example.com"
+                />
+              </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedRole('member')}
-              className={`rounded-md py-2 text-sm font-medium transition-colors ${
-                selectedRole === 'member'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              Member
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('trainer')}
-              className={`rounded-md py-2 text-sm font-medium transition-colors ${
-                selectedRole === 'trainer'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              Trainer
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('admin')}
-              className={`rounded-md py-2 text-sm font-medium transition-colors ${
-                selectedRole === 'admin'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
-            >
-              Admin
-            </button>
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-3xl border border-slate-800 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  placeholder="••••••••"
+                />
+              </div>
 
-          <p className="text-sm text-slate-400 text-center">
-            New here?{' '}
-            <Link href="/register" className="text-emerald-400 hover:text-emerald-300">
-              Create a member account
-            </Link>
-          </p>
-        </form>
+              <button
+                type="submit"
+                disabled={busy}
+                className="w-full rounded-3xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {busy ? 'Signing in…' : 'Sign in'}
+              </button>
+            </form>
+
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              {['member', 'trainer', 'admin'].map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setSelectedRole(role)}
+                  className={`rounded-3xl border px-3 py-2 text-sm font-medium transition ${
+                    selectedRole === role
+                      ? 'border-emerald-500 bg-emerald-600 text-white'
+                      : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-white'
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-6 text-center text-sm text-slate-400">
+              New to PulseFit?{' '}
+              <Link href="/register" className="font-medium text-emerald-400 hover:text-emerald-300">
+                Create an account
+              </Link>
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );
