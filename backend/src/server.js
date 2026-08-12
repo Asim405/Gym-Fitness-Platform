@@ -40,6 +40,7 @@ async function start() {
     app.listen(PORT, () => {
       console.log(`🚀 Gym & Fitness Platform API running on port ${PORT}`);
       console.log(`   API docs:     http://localhost:${PORT}/api-docs`);
+      console.log("server is running in " + process.env.NODE_ENV + " mode");
     });
   } catch (err) {
     console.error('❌ Failed to start server — could not connect to the database:', err.message);
