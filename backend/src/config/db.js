@@ -20,9 +20,10 @@ if (dbType === 'mysql') {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    ssl: fs.existsSync(caPath)
-      ? { ca: fs.readFileSync(caPath) }
-      : { rejectUnauthorized: false },
+    ssl:false,
+    //  fs.existsSync(caPath)
+    //   ? { ca: fs.readFileSync(caPath) }
+    //   : { rejectUnauthorized: false },
   });
 
   const wrapQuery = async (sql, params) => {
