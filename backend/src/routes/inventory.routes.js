@@ -21,6 +21,8 @@ router.post(
   ctrl.create
 );
 router.put('/:id', authorize('admin'), ctrl.update);
+router.post('/:id/adjust-stock', authorize('admin'), [body('quantityChange').isInt().not().equals(0), body('reason').optional().isLength({ max: 255 })], validate, ctrl.adjustStock);
+router.get('/:id/stock-history', authorize('admin'), ctrl.stockHistory);
 router.delete('/:id', authorize('admin'), ctrl.remove);
 
 module.exports = router;

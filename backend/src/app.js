@@ -16,6 +16,8 @@ const dietPlansRoutes = require('./routes/dietPlans.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const progressRoutes = require('./routes/progress.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const trainerRelationsRoutes = require('./routes/trainerRelations.routes');
+const invoiceRoutes = require('./routes/invoices.routes');
 
 const app = express();
 
@@ -50,6 +52,8 @@ app.use('/api/diet-plans', dietPlansRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', trainerRelationsRoutes);
+app.use('/api/invoices', invoiceRoutes);
 
 // ---- Swagger docs (served from the static YAML spec) ----
 try {

@@ -7,6 +7,11 @@
 
 -- Clean rebuild (dev only — remove the DROP block in production)
 DROP TABLE IF EXISTS activity_logs CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS trainer_assignments CASCADE;
+DROP TABLE IF EXISTS trainer_requests CASCADE;
+DROP TABLE IF EXISTS trainer_profiles CASCADE;
 DROP TABLE IF EXISTS progress_metrics CASCADE;
 DROP TABLE IF EXISTS attendance CASCADE;
 DROP TABLE IF EXISTS class_schedules CASCADE;
@@ -41,6 +46,50 @@ CREATE INDEX idx_users_role  ON users(role);
 CREATE INDEX idx_users_email ON users(email);
 
 -- ============================================================
+-- TRAINER PROFILES AND MEMBER RELATIONSHIPS
+-- ============================================================
+CREATE TABLE trainer_profiles (
+    trainer_id              INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    specialization          VARCHAR(120),
+    experience_years        INTEGER CHECK (experience_years >= 0),
+    bio                     TEXT,
+    availability_note       VARCHAR(255),
+    personal_training_cost  NUMERIC(10,2) CHECK (personal_training_cost >= 0),
+    max_members             INTEGER NOT NULL DEFAULT 20 CHECK (max_members > 0),
+    is_available            BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE trainer_requests (
+    id          SERIAL PRIMARY KEY,
+    member_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    trainer_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      VARCHAR(20) NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+    note        VARCHAR(500),
+    reviewed_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_trainer_requests_member ON trainer_requests(member_id, status);
+CREATE INDEX idx_trainer_requests_trainer ON trainer_requests(trainer_id, status);
+
+CREATE TABLE trainer_assignments (
+    id          SERIAL PRIMARY KEY,
+    member_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    trainer_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status      VARCHAR(20) NOT NULL DEFAULT 'active'
+                    CHECK (status IN ('active', 'ended')),
+    assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ended_at    TIMESTAMPTZ
+);
+CREATE UNIQUE INDEX uq_active_trainer_assignment_per_member
+    ON trainer_assignments(member_id) WHERE status = 'active';
+CREATE INDEX idx_trainer_assignments_trainer ON trainer_assignments(trainer_id, status);
+
+-- ============================================================
 -- MEMBERSHIP PLANS  (catalog: Basic / Premium / Elite ...)
 -- ============================================================
 CREATE TABLE membership_plans (
@@ -49,6 +98,8 @@ CREATE TABLE membership_plans (
     description     TEXT,
     price           NUMERIC(10,2) NOT NULL CHECK (price >= 0),
     duration_days   INTEGER       NOT NULL CHECK (duration_days > 0),
+    features        JSONB         NOT NULL DEFAULT '[]'::jsonb,
+    status          VARCHAR(20)   NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
 
@@ -184,6 +235,10 @@ CREATE TABLE inventory_items (
     name             VARCHAR(150) NOT NULL,
     category         VARCHAR(80),
     quantity         INTEGER NOT NULL DEFAULT 0,
+    minimum_stock    INTEGER NOT NULL DEFAULT 0 CHECK (minimum_stock >= 0),
+    supplier         VARCHAR(150),
+    purchase_price   NUMERIC(10,2) CHECK (purchase_price >= 0),
+    selling_price    NUMERIC(10,2) CHECK (selling_price >= 0),
     status           VARCHAR(30) NOT NULL DEFAULT 'available',
     notes            TEXT,
     last_maintenance DATE,
@@ -195,6 +250,17 @@ CREATE TABLE inventory_items (
 
 CREATE INDEX idx_inventory_status ON inventory_items(status);
 CREATE INDEX idx_inventory_category ON inventory_items(category);
+
+CREATE TABLE inventory_stock_history (
+    id                SERIAL PRIMARY KEY,
+    inventory_item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE CASCADE,
+    quantity_change   INTEGER NOT NULL,
+    quantity_after    INTEGER NOT NULL,
+    reason            VARCHAR(255),
+    created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_stock_history_item ON inventory_stock_history(inventory_item_id, created_at DESC);
 
 -- ============================================================
 -- DIET PLANS
@@ -228,9 +294,24 @@ CREATE TABLE diet_plan_entries (
 -- ============================================================
 -- PAYMENTS / BILLING
 -- ============================================================
+CREATE TABLE invoices (
+    id             SERIAL PRIMARY KEY,
+    invoice_number VARCHAR(40) NOT NULL UNIQUE,
+    member_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    membership_id  INTEGER REFERENCES memberships(id) ON DELETE SET NULL,
+    amount         NUMERIC(10,2) NOT NULL CHECK (amount >= 0),
+    due_date       DATE,
+    status         VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'overdue', 'cancelled')),
+    notes          TEXT,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    paid_at        TIMESTAMPTZ
+);
+CREATE INDEX idx_invoices_member ON invoices(member_id, status);
+
 CREATE TABLE payments (
     id             SERIAL PRIMARY KEY,
     member_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invoice_id      INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
     amount         NUMERIC(10,2) NOT NULL,
     payment_method VARCHAR(80) NOT NULL,
     reference      VARCHAR(200),

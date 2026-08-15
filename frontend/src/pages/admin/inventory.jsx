@@ -5,7 +5,7 @@ import api from '../../lib/api';
 
 function AdminInventory() {
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({ name: '', category: '', quantity: 0, status: 'available', notes: '' });
+  const [form, setForm] = useState({ name: '', category: '', quantity: 0, minimumStock: 0, supplier: '', status: 'available', notes: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -28,12 +28,14 @@ function AdminInventory() {
         name: form.name,
         category: form.category || null,
         quantity: Number(form.quantity),
+        minimumStock: Number(form.minimumStock),
+        supplier: form.supplier || null,
         status: form.status,
         notes: form.notes || null,
       });
       setItems((prev) => [data, ...prev]);
       setStatus('Inventory item created successfully.');
-      setForm({ name: '', category: '', quantity: 0, status: 'available', notes: '' });
+      setForm({ name: '', category: '', quantity: 0, minimumStock: 0, supplier: '', status: 'available', notes: '' });
     } catch (err) {
       setError(err.response?.data?.error || 'Could not create inventory item.');
     }
@@ -56,6 +58,14 @@ function AdminInventory() {
                 required
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
               />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Minimum stock</span>
+              <input type="number" min="0" value={form.minimumStock} onChange={(e) => setForm((prev) => ({ ...prev, minimumStock: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">Supplier</span>
+              <input value={form.supplier} onChange={(e) => setForm((prev) => ({ ...prev, supplier: e.target.value }))} className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" />
             </label>
             <label className="block">
               <span className="text-sm font-medium text-slate-700">Category</span>
@@ -116,6 +126,7 @@ function AdminInventory() {
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Qty</th>
+                    <th className="px-4 py-3">Threshold</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Notes</th>
                   </tr>
@@ -126,6 +137,7 @@ function AdminInventory() {
                       <td className="px-4 py-3 text-slate-800">{item.name}</td>
                       <td className="px-4 py-3 text-slate-600">{item.category || '—'}</td>
                       <td className="px-4 py-3 text-slate-800">{item.quantity}</td>
+                      <td className={`px-4 py-3 ${Number(item.quantity) <= Number(item.minimum_stock) ? 'font-semibold text-rose-600' : 'text-slate-600'}`}>{item.minimum_stock ?? 0}</td>
                       <td className="px-4 py-3 text-slate-600 capitalize">{item.status.replace('_', ' ')}</td>
                       <td className="px-4 py-3 text-slate-600">{item.notes || '—'}</td>
                     </tr>

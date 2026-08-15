@@ -50,6 +50,9 @@ async function create(req, res) {
 async function update(req, res) {
   const { title, startTime, endTime, capacity, location } = req.body;
   try {
+    const existing = await pool.query('SELECT trainer_id FROM class_schedules WHERE id=$1', [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Class not found' });
+    if (req.user.role === 'trainer' && existing.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only update your own classes' });
     await pool.query(
       `UPDATE class_schedules SET
          title = COALESCE($1, title), start_time = COALESCE($2, start_time),
@@ -68,6 +71,9 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
+    const existing = await pool.query('SELECT trainer_id FROM class_schedules WHERE id=$1', [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Class not found' });
+    if (req.user.role === 'trainer' && existing.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own classes' });
     const result = await pool.query('DELETE FROM class_schedules WHERE id = $1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Class not found' });
     res.status(204).send();

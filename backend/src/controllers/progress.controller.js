@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { requireMemberAccess } = require('../services/memberAccess');
 
 function calcBmi(weightKg, heightCm) {
   if (!weightKg || !heightCm) return null;
@@ -13,6 +14,8 @@ async function create(req, res) {
   const memberId = req.user.role === 'member' ? req.user.id : req.body.memberId;
 
   try {
+    if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+    if (!(await requireMemberAccess(req, res, memberId))) return;
     const userResult = await pool.query('SELECT height_cm FROM users WHERE id = $1', [memberId]);
     const heightCm = userResult.rows[0]?.height_cm;
     const bmi = calcBmi(weightKg, heightCm);
@@ -36,6 +39,7 @@ async function history(req, res) {
   if (!memberId) return res.status(400).json({ error: 'memberId is required' });
 
   try {
+    if (!(await requireMemberAccess(req, res, memberId))) return;
     const result = await pool.query(
       `SELECT * FROM progress_metrics WHERE member_id = $1 ORDER BY recorded_at ASC`,
       [memberId]

@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const logActivity = require('../utils/logActivity');
+const { canTrainerAccessMember } = require('../services/memberAccess');
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
 
@@ -18,6 +19,10 @@ async function list(req, res) {
   if (role) {
     params.push(role);
     conditions.push(`role = $${params.length}`);
+  }
+  if (req.user.role === 'trainer') {
+    params.push(req.user.id);
+    conditions.push(`role = 'member' AND id IN (SELECT member_id FROM trainer_assignments WHERE trainer_id = $${params.length} AND status = 'active')`);
   }
   if (search) {
     params.push(`%${search}%`);
@@ -59,6 +64,12 @@ async function list(req, res) {
 // GET /api/users/:id
 async function getById(req, res) {
   try {
+    if (req.user.role === 'member' && req.user.id !== Number(req.params.id)) {
+      return res.status(403).json({ error: 'Members may only view their own profile' });
+    }
+    if (req.user.role === 'trainer' && !(await canTrainerAccessMember(req.user.id, Number(req.params.id)))) {
+      return res.status(403).json({ error: 'You are not authorized to access this member' });
+    }
     const result = await pool.query(
       `SELECT id, full_name, email, role, phone, date_of_birth, gender, height_cm, is_active, created_at
        FROM users WHERE id = $1`,

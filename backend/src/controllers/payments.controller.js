@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const logActivity = require('../utils/logActivity');
+const { requireMemberAccess } = require('../services/memberAccess');
 
 async function list(req, res) {
   const { memberId, page = 1, limit = 20 } = req.query;
@@ -12,6 +13,10 @@ async function list(req, res) {
   } else if (memberId) {
     params.push(memberId);
     conditions.push(`member_id = $${params.length}`);
+  }
+  if (req.user.role === 'trainer') {
+    params.push(req.user.id);
+    conditions.push(`member_id IN (SELECT member_id FROM trainer_assignments WHERE trainer_id = $${params.length} AND status = 'active')`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -36,9 +41,7 @@ async function getById(req, res) {
     const result = await pool.query('SELECT * FROM payments WHERE id = $1', [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Payment not found' });
     const payment = result.rows[0];
-    if (req.user.role === 'member' && payment.member_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    if (!(await requireMemberAccess(req, res, payment.member_id))) return;
     res.json(payment);
   } catch (err) {
     console.error(err);
@@ -49,6 +52,7 @@ async function getById(req, res) {
 async function create(req, res) {
   const { memberId, amount, paymentMethod, reference, notes } = req.body;
   try {
+    if (!(await requireMemberAccess(req, res, memberId))) return;
     const insertResult = await pool.query(
       `INSERT INTO payments (member_id, amount, payment_method, reference, notes)
        VALUES ($1, $2, $3, $4, $5)`,
