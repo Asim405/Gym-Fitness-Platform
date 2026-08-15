@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 const NAV = {
   admin: [
     { label: 'Overview', href: '/admin/dashboard' },
+    { label: 'Members', href: '/admin/members' },
+    { label: 'Trainers', href: '/admin/trainers' },
+    { label: 'Memberships', href: '/admin/memberships' },
     { label: 'Classes', href: '/admin/classes' },
     { label: 'Inventory', href: '/admin/inventory' },
   ],
@@ -15,6 +18,9 @@ const NAV = {
   ],
   member: [
     { label: 'Overview', href: '/member/dashboard' },
+    { label: 'Trainers', href: '/member/trainers' },
+    { label: 'My trainer', href: '/member/my-trainer' },
+    { label: 'My membership', href: '/member/memberships' },
     { label: 'Classes', href: '/member/classes' },
     { label: 'Diet plans', href: '/member/diet-plans' },
     { label: 'Billing', href: '/member/invoices' },

@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const logActivity = require('../utils/logActivity');
+const { requireMemberAccess } = require('../services/memberAccess');
 
 async function list(req, res) {
   const { memberId, page = 1, limit = 20 } = req.query;
@@ -12,6 +13,10 @@ async function list(req, res) {
   } else if (memberId) {
     params.push(memberId);
     conditions.push(`member_id = $${params.length}`);
+  }
+  if (req.user.role === 'trainer') {
+    params.push(req.user.id);
+    conditions.push(`member_id IN (SELECT member_id FROM trainer_assignments WHERE trainer_id = $${params.length} AND status = 'active')`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -38,9 +43,7 @@ async function getById(req, res) {
     if (!result.rows.length) return res.status(404).json({ error: 'Diet plan not found' });
 
     const dietPlan = result.rows[0];
-    if (req.user.role === 'member' && dietPlan.member_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    if (!(await requireMemberAccess(req, res, dietPlan.member_id))) return;
 
     res.json(dietPlan);
   } catch (err) {
@@ -52,6 +55,7 @@ async function getById(req, res) {
 async function create(req, res) {
   const { memberId, title, notes, calories, protein, carbs, fats, entries } = req.body;
   try {
+    if (!(await requireMemberAccess(req, res, memberId))) return;
     const insertResult = await pool.query(
       `INSERT INTO diet_plans (member_id, title, notes, calories, protein, carbs, fats)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -83,11 +87,7 @@ async function update(req, res) {
     const existing = await pool.query('SELECT * FROM diet_plans WHERE id = $1', [req.params.id]);
     if (!existing.rows.length) return res.status(404).json({ error: 'Diet plan not found' });
     const dietPlan = existing.rows[0];
-    if (req.user.role === 'trainer' || req.user.role === 'admin') {
-      // allowed
-    } else if (req.user.role === 'member' && dietPlan.member_id !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
+    if (!(await requireMemberAccess(req, res, dietPlan.member_id))) return;
 
     await pool.query(
       `UPDATE diet_plans SET
@@ -113,6 +113,9 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
+    const existing = await pool.query('SELECT member_id FROM diet_plans WHERE id = $1', [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Diet plan not found' });
+    if (!(await requireMemberAccess(req, res, existing.rows[0].member_id))) return;
     const result = await pool.query('DELETE FROM diet_plans WHERE id = $1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Diet plan not found' });
     await logActivity({ userId: req.user.id, action: 'DIET_PLAN_DELETED', details: { dietPlanId: req.params.id } });

@@ -4,7 +4,8 @@ const pool = require('../config/db');
 
 async function listPlans(req, res) {
   try {
-    const result = await pool.query('SELECT * FROM membership_plans ORDER BY price ASC');
+    const where = req.user.role === 'admin' ? '' : "WHERE status = 'active'";
+    const result = await pool.query(`SELECT * FROM membership_plans ${where} ORDER BY price ASC`);
     res.json({ data: result.rows });
   } catch (err) {
     console.error(err);
@@ -13,11 +14,11 @@ async function listPlans(req, res) {
 }
 
 async function createPlan(req, res) {
-  const { name, description, price, durationDays } = req.body;
+  const { name, description, price, durationDays, features = [], status = 'active' } = req.body;
   try {
     const insertResult = await pool.query(
-      `INSERT INTO membership_plans (name, description, price, duration_days) VALUES ($1, $2, $3, $4)`,
-      [name, description || null, price, durationDays]
+      `INSERT INTO membership_plans (name, description, price, duration_days, features, status) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [name, description || null, price, durationDays, JSON.stringify(features), status]
     );
     const created = await pool.query('SELECT * FROM membership_plans WHERE id = $1', [insertResult.insertId]);
     res.status(201).json(created.rows[0]);
@@ -25,6 +26,19 @@ async function createPlan(req, res) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create plan' });
   }
+}
+
+async function updatePlan(req, res) {
+  const { name, description, price, durationDays, features, status } = req.body;
+  try {
+    await pool.query(
+      `UPDATE membership_plans SET name=COALESCE($1,name), description=COALESCE($2,description), price=COALESCE($3,price), duration_days=COALESCE($4,duration_days), features=COALESCE($5,features), status=COALESCE($6,status) WHERE id=$7`,
+      [name, description, price, durationDays, features === undefined ? null : JSON.stringify(features), status, req.params.id]
+    );
+    const result = await pool.query('SELECT * FROM membership_plans WHERE id=$1', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'Membership plan not found' });
+    res.json(result.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update membership plan' }); }
 }
 
 // ---- Memberships (a member's subscription) ----
@@ -51,6 +65,24 @@ async function assign(req, res) {
     console.error(err);
     res.status(500).json({ error: 'Failed to assign membership' });
   }
+}
+
+// Members submit a subscription request. It stays pending until a payment/admin workflow activates it.
+async function subscribe(req, res) {
+  const { membershipPlanId } = req.body;
+  try {
+    const plan = await pool.query(`SELECT id, duration_days FROM membership_plans WHERE id=$1 AND status='active'`, [membershipPlanId]);
+    if (!plan.rows.length) return res.status(404).json({ error: 'Membership plan is not available' });
+    const existing = await pool.query(`SELECT id FROM memberships WHERE member_id=$1 AND membership_plan_id=$2 AND status='pending'`, [req.user.id, membershipPlanId]);
+    if (existing.rows.length) return res.status(409).json({ error: 'A subscription request for this plan is already pending' });
+    const start = new Date(); const end = new Date(start); end.setDate(end.getDate() + Number(plan.rows[0].duration_days));
+    const insert = await pool.query(
+      `INSERT INTO memberships (member_id, membership_plan_id, start_date, end_date, status, amount_paid) VALUES ($1,$2,$3,$4,'pending',0)`,
+      [req.user.id, membershipPlanId, start, end]
+    );
+    const created = await pool.query('SELECT * FROM memberships WHERE id=$1', [insert.insertId]);
+    res.status(201).json(created.rows[0]);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to request membership' }); }
 }
 
 // GET /api/memberships?memberId=&status=
@@ -101,4 +133,4 @@ async function updateStatus(req, res) {
   }
 }
 
-module.exports = { listPlans, createPlan, assign, list, updateStatus };
+module.exports = { listPlans, createPlan, updatePlan, assign, subscribe, list, updateStatus };

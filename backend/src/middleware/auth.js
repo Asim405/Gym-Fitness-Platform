@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
 /**
  * Verifies the JWT sent in the Authorization header (Bearer token).
  * Attaches the decoded payload ({ id, role, email }) to req.user.
  */
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -14,7 +15,16 @@ function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = payload; // { id, role, email }
+    const result = await pool.query(
+      `SELECT id, role, email, is_active FROM users WHERE id = $1`,
+      [payload.id]
+    );
+    const user = result.rows[0];
+    if (!user || !user.is_active) {
+      return res.status(401).json({ error: 'Account is inactive or no longer exists' });
+    }
+    // Roles are read from the database to make role changes effective immediately.
+    req.user = { id: user.id, role: user.role, email: user.email };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });

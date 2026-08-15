@@ -1,11 +1,17 @@
 const pool = require('../config/db');
 const logActivity = require('../utils/logActivity');
+const { requireMemberAccess } = require('../services/memberAccess');
 
 // POST /api/attendance/book  { classScheduleId }
 async function book(req, res) {
   const { classScheduleId } = req.body;
   const memberId = req.user.id;
   try {
+    const membership = await pool.query(
+      `SELECT id FROM memberships WHERE member_id=$1 AND status='active' AND end_date >= CURRENT_DATE ORDER BY end_date DESC LIMIT 1`,
+      [memberId]
+    );
+    if (!membership.rows.length) return res.status(403).json({ error: 'An active membership is required to book classes' });
     const cls = await pool.query(
       `SELECT cs.capacity,
               (SELECT COUNT(*) FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked
@@ -77,8 +83,16 @@ async function scan(req, res) {
       return res.status(404).json({ error: 'Member not found or inactive' });
     }
 
-    const cls = await pool.query('SELECT capacity FROM class_schedules WHERE id = $1', [classScheduleId]);
+    const cls = await pool.query('SELECT capacity, trainer_id FROM class_schedules WHERE id = $1', [classScheduleId]);
     if (!cls.rows.length) return res.status(404).json({ error: 'Class not found' });
+    if (req.user.role === 'trainer' && cls.rows[0].trainer_id !== req.user.id) {
+      return res.status(403).json({ error: 'You can only scan attendance for your own classes' });
+    }
+    const booking = await pool.query(
+      `SELECT id FROM attendance WHERE class_schedule_id=$1 AND member_id=$2 AND status IN ('booked', 'checked_in')`,
+      [classScheduleId, memberId]
+    );
+    if (!booking.rows.length) return res.status(409).json({ error: 'Member does not have an active booking for this class' });
 
     if (pool.dbType === 'mysql') {
       await pool.query(
@@ -113,6 +127,9 @@ async function scan(req, res) {
 // PATCH /api/attendance/:id/check-in  (trainer/admin marks a member present)
 async function checkIn(req, res) {
   try {
+    const booking = await pool.query('SELECT a.member_id, cs.trainer_id FROM attendance a JOIN class_schedules cs ON cs.id=a.class_schedule_id WHERE a.id=$1', [req.params.id]);
+    if (!booking.rows.length) return res.status(404).json({ error: 'Booking not found' });
+    if (req.user.role === 'trainer' && booking.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only check in attendees for your classes' });
     await pool.query(
       `UPDATE attendance SET status = 'checked_in', checked_in_at = NOW() WHERE id = $1`,
       [req.params.id]
@@ -133,6 +150,10 @@ async function checkIn(req, res) {
 // PATCH /api/attendance/:id/cancel
 async function cancel(req, res) {
   try {
+    const booking = await pool.query('SELECT a.member_id, cs.trainer_id FROM attendance a JOIN class_schedules cs ON cs.id=a.class_schedule_id WHERE a.id=$1', [req.params.id]);
+    if (!booking.rows.length) return res.status(404).json({ error: 'Booking not found' });
+    if (req.user.role === 'member' && booking.rows[0].member_id !== req.user.id) return res.status(403).json({ error: 'You can only cancel your own booking' });
+    if (req.user.role === 'trainer' && booking.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only manage bookings for your classes' });
     await pool.query(
       `UPDATE attendance SET status = 'cancelled' WHERE id = $1`,
       [req.params.id]
@@ -157,6 +178,7 @@ async function list(req, res) {
   if (classScheduleId) { params.push(classScheduleId); conditions.push(`a.class_schedule_id = $${params.length}`); }
   if (memberId) { params.push(memberId); conditions.push(`a.member_id = $${params.length}`); }
   if (req.user.role === 'member') { params.push(req.user.id); conditions.push(`a.member_id = $${params.length}`); }
+  if (req.user.role === 'trainer') { params.push(req.user.id); conditions.push(`cs.trainer_id = $${params.length}`); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
   try {

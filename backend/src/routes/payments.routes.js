@@ -11,7 +11,7 @@ router.get('/', authorize('admin', 'trainer', 'member'), ctrl.list);
 router.get('/:id', authorize('admin', 'trainer', 'member'), ctrl.getById);
 router.post(
   '/',
-  authorize('admin', 'trainer'),
+  authorize('admin'),
   [
     body('memberId').isInt(),
     body('amount').isFloat({ min: 0 }),

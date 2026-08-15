@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { requireMemberAccess } = require('../services/memberAccess');
 
 // GET /api/workout-plans?memberId=&trainerId=&page=1&limit=10
 async function list(req, res) {
@@ -13,6 +14,11 @@ async function list(req, res) {
   if (req.user.role === 'member') {
     params.push(req.user.id);
     conditions.push(`wp.member_id = $${params.length}`);
+  }
+  if (req.user.role === 'trainer') {
+    params.push(req.user.id);
+    conditions.push(`wp.member_id IN (SELECT member_id FROM trainer_assignments WHERE trainer_id = $${params.length} AND status = 'active')`);
+    conditions.push(`wp.trainer_id = $${params.length}`);
   }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -41,6 +47,8 @@ async function getById(req, res) {
   try {
     const plan = await pool.query('SELECT * FROM workout_plans WHERE id = $1', [req.params.id]);
     if (!plan.rows.length) return res.status(404).json({ error: 'Plan not found' });
+    if (plan.rows[0].member_id && !(await requireMemberAccess(req, res, plan.rows[0].member_id))) return;
+    if (req.user.role === 'trainer' && plan.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only access your own plans' });
 
     const exercises = await pool.query(
       `SELECT wpe.id, wpe.sets, wpe.reps, wpe.duration_secs, wpe.order_index,
@@ -62,6 +70,7 @@ async function getById(req, res) {
 // POST /api/workout-plans  { title, description, memberId, startDate, endDate, exercises: [{exerciseId, sets, reps, durationSecs, orderIndex}] }
 async function create(req, res) {
   const { title, description, memberId, startDate, endDate, exercises = [] } = req.body;
+  if (req.user.role === 'trainer' && (!memberId || !(await requireMemberAccess(req, res, memberId)))) return;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -71,7 +80,8 @@ async function create(req, res) {
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [title, description || null, req.user.id, memberId || null, startDate || null, endDate || null]
     );
-    const plan = await client.query('SELECT * FROM workout_plans WHERE id = $1', [planResult.insertId]);
+    const planResultRows = await client.query('SELECT * FROM workout_plans WHERE id = $1', [planResult.insertId]);
+    const plan = planResultRows.rows[0];
 
     for (const ex of exercises) {
       await client.query(
@@ -94,6 +104,9 @@ async function create(req, res) {
 
 async function remove(req, res) {
   try {
+    const plan = await pool.query('SELECT * FROM workout_plans WHERE id=$1', [req.params.id]);
+    if (!plan.rows.length) return res.status(404).json({ error: 'Plan not found' });
+    if (req.user.role === 'trainer' && plan.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only delete your own plans' });
     const result = await pool.query('DELETE FROM workout_plans WHERE id = $1', [req.params.id]);
     if (result.rowCount === 0) return res.status(404).json({ error: 'Plan not found' });
     res.status(204).send();

@@ -1,0 +1,11 @@
+const express = require('express');
+const { body } = require('express-validator');
+const { authenticate, authorize } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const ctrl = require('../controllers/invoices.controller');
+const router = express.Router();
+router.use(authenticate);
+router.get('/', authorize('admin', 'trainer', 'member'), ctrl.list);
+router.post('/', authorize('admin'), [body('memberId').isInt(), body('amount').isFloat({ min: 0 }), body('dueDate').optional().isISO8601()], validate, ctrl.create);
+router.patch('/:id/status', authorize('admin'), [body('status').isIn(['pending', 'paid', 'overdue', 'cancelled'])], validate, ctrl.updateStatus);
+module.exports = router;

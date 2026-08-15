@@ -20,6 +20,7 @@ router.post(
   validate,
   ctrl.createPlan
 );
+router.put('/plans/:id', authorize('admin'), [body('price').optional().isFloat({ min: 0 }), body('durationDays').optional().isInt({ min: 1 }), body('features').optional().isArray(), body('status').optional().isIn(['active', 'inactive'])], validate, ctrl.updatePlan);
 
 // ---- Member subscriptions ----
 router.get('/', authorize('admin', 'trainer', 'member'), ctrl.list);
@@ -33,6 +34,7 @@ router.post(
   validate,
   ctrl.assign
 );
+router.post('/subscribe', authorize('member'), [body('membershipPlanId').isInt()], validate, ctrl.subscribe);
 router.patch(
   '/:id/status',
   authorize('admin'),
