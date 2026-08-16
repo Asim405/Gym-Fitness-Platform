@@ -19,11 +19,11 @@ function MemberDietPlans() {
       <div className="space-y-6">
         {error && <p className="text-red-600">{error}</p>}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
+        <section className="  rounded-2xl border border-slate-200 bg-white p-6" >
           {plans.length === 0 ? (
             <p className="text-slate-500">You do not have any active diet plans yet.</p>
           ) : (
-            <div className="space-y-4">
+            <div className=" space-y-4">
               {plans.map((plan) => (
                 <div key={plan.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
