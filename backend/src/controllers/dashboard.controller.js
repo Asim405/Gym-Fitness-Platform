@@ -8,8 +8,9 @@ async function adminSummary(req, res) {
     const last30Days = isMySQL ? "DATE_SUB(NOW(), INTERVAL 30 DAY)" : "NOW() - INTERVAL '30 days'";
     const last12Months = isMySQL ? "DATE_SUB(NOW(), INTERVAL 12 MONTH)" : "NOW() - INTERVAL '12 months'";
     const monthExpr = isMySQL ? "DATE_FORMAT(created_at, '%Y-%m')" : "TO_CHAR(created_at, 'YYYY-MM')";
+    const hourExpr = isMySQL ? "HOUR(checked_in_at)" : "EXTRACT(HOUR FROM checked_in_at)";
 
-    const [members, revenue, statusBreakdown, attendanceTrend, activeCounts, monthlyRevenue, peakHours, trainerAllocation] = await Promise.all([
+    const [members, revenue, statusBreakdown, attendanceTrend, activeCounts, monthlyRevenue, peakHours, trainerAllocation, invoiceSummary, unpaidFees] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total FROM users WHERE role = 'member'`),
       pool.query(`SELECT COALESCE(SUM(amount_paid), 0) AS total FROM memberships`),
       pool.query(`SELECT status, COUNT(*) AS count FROM memberships GROUP BY status`),
@@ -33,10 +34,10 @@ async function adminSummary(req, res) {
          ORDER BY month ASC`
       ),
       pool.query(
-        `SELECT EXTRACT(HOUR FROM checked_in_at) AS hour, COUNT(*) AS count
+        `SELECT ${hourExpr} AS hour, COUNT(*) AS count
          FROM attendance
          WHERE checked_in_at IS NOT NULL AND checked_in_at >= ${last30Days}
-         GROUP BY EXTRACT(HOUR FROM checked_in_at) ORDER BY count DESC LIMIT 8`
+         GROUP BY ${hourExpr} ORDER BY count DESC LIMIT 8`
       ),
       pool.query(`
         SELECT u.id AS trainer_id, u.full_name AS trainer_name,
@@ -50,11 +51,28 @@ async function adminSummary(req, res) {
         ORDER BY classes_count DESC, workout_plans_count DESC
         LIMIT 10`
       ),
+      pool.query(`
+        SELECT
+          COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paidAmount,
+          COALESCE(SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END), 0) AS pendingAmount,
+          COALESCE(SUM(CASE WHEN status = 'overdue' THEN amount ELSE 0 END), 0) AS overdueAmount,
+          COUNT(CASE WHEN status = 'paid' THEN 1 END) AS paidInvoices,
+          COUNT(CASE WHEN status IN ('pending', 'overdue') THEN 1 END) AS unpaidInvoices
+        FROM invoices`
+      ),
+      pool.query(`
+        SELECT i.id, i.invoice_number, u.full_name AS member_name, i.amount, i.status, i.due_date
+        FROM invoices i
+        JOIN users u ON u.id = i.member_id
+        WHERE i.status IN ('pending','overdue')
+        ORDER BY i.due_date ASC, i.amount DESC
+        LIMIT 10`
+      )
     ]);
 
     res.json({
       totalMembers: members.rows[0].total,
-      totalRevenue: revenue.rows[0].total,
+      totalRevenue: Number(revenue.rows[0].total || 0) + Number(invoiceSummary.rows[0].paidAmount || 0),
       membershipStatusBreakdown: statusBreakdown.rows,
       dailyAttendanceTrend: attendanceTrend.rows,
       activeMembers: Number(activeCounts.rows[0].activeMembers || 0),
@@ -62,6 +80,14 @@ async function adminSummary(req, res) {
       monthlyRevenue: monthlyRevenue.rows,
       peakHours: peakHours.rows,
       trainerAllocation: trainerAllocation.rows,
+      revenueSummary: {
+        paidAmount: Number(invoiceSummary.rows[0].paidAmount || 0),
+        pendingAmount: Number(invoiceSummary.rows[0].pendingAmount || 0),
+        overdueAmount: Number(invoiceSummary.rows[0].overdueAmount || 0),
+        paidInvoices: Number(invoiceSummary.rows[0].paidInvoices || 0),
+        unpaidInvoices: Number(invoiceSummary.rows[0].unpaidInvoices || 0),
+      },
+      unpaidFees: unpaidFees.rows,
     });
   } catch (err) {
     console.error(err);

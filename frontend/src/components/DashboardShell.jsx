@@ -9,6 +9,7 @@ const NAV = {
     { label: 'Trainers', href: '/admin/trainers' },
     { label: 'Memberships', href: '/admin/memberships' },
     { label: 'Classes', href: '/admin/classes' },
+    { label: 'Diet plans', href: '/admin/diet-plans' },
     { label: 'Inventory', href: '/admin/inventory' },
   ],
   trainer: [

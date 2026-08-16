@@ -7,6 +7,13 @@ function calcBmi(weightKg, heightCm) {
   return Number((weightKg / (heightM * heightM)).toFixed(2));
 }
 
+function normalizeRecordedAt(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
 // POST /api/progress  { weightKg, bodyFatPct, goalNote, recordedAt }
 // Members log their own metrics; height comes from their profile for BMI.
 async function create(req, res) {
@@ -19,11 +26,12 @@ async function create(req, res) {
     const userResult = await pool.query('SELECT height_cm FROM users WHERE id = $1', [memberId]);
     const heightCm = userResult.rows[0]?.height_cm;
     const bmi = calcBmi(weightKg, heightCm);
+    const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
 
     const insertResult = await pool.query(
       `INSERT INTO progress_metrics (member_id, weight_kg, body_fat_pct, bmi, goal_note, photo_url, recorded_at)
        VALUES ($1, $2, $3, $4, $5, $6, COALESCE($7, CURRENT_DATE))`,
-      [memberId, weightKg, bodyFatPct || null, bmi, goalNote || null, photoUrl || null, recordedAt || null]
+      [memberId, weightKg, bodyFatPct || null, bmi, goalNote || null, photoUrl || null, normalizedRecordedAt]
     );
     const created = await pool.query('SELECT * FROM progress_metrics WHERE id = $1', [insertResult.insertId]);
     res.status(201).json(created.rows[0]);
