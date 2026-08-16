@@ -10,8 +10,33 @@ function TrainersAdminPage() {
   const load = () => Promise.all([api.get('/trainers'), api.get('/trainer-requests')]).then(([t, r]) => { setTrainers(t.data.data || []); setRequests(r.data.data || []); }).catch(() => setError('Unable to load trainer management data.')).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
   const update = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
-  async function createTrainer(event) { event.preventDefault(); setError(''); setNotice(''); try { const { data } = await api.post('/users', { fullName: form.fullName, email: form.email, password: form.password, phone: form.phone || null, role: 'trainer' }); await api.put(`/trainers/${data.id}/profile`, { specialization: form.specialization || null, experienceYears: form.experienceYears ? Number(form.experienceYears) : null, maxMembers: Number(form.maxMembers), availabilityNote: form.availabilityNote || null, personalTrainingCost: form.personalTrainingCost ? Number(form.personalTrainingCost) : null }); setForm(blank); setNotice('Trainer created and ready to receive requests.'); load(); } catch (err) { setError(err.response?.data?.error || 'Unable to create trainer.'); } }
-  async function approve(id) { setError(''); try { await api.patch(`/trainer-requests/${id}/approve`); setNotice('Trainer request approved and assignment created.'); load(); } catch (err) { setError(err.response?.data?.error || 'Unable to approve request.'); } }
+  async function createTrainer(event) {
+    event.preventDefault();
+    setError(''); setNotice('');
+    if (!form.fullName || !form.email || !form.password) {
+      setError('Name, email, and password are required.');
+      return;
+    }
+    try {
+      const { data } = await api.post('/users', { fullName: form.fullName, email: form.email, password: form.password, phone: form.phone || null, role: 'trainer' });
+      await api.put(`/trainers/${data.id}/profile`, {
+        specialization: form.specialization || null,
+        experienceYears: form.experienceYears ? Number(form.experienceYears) : null,
+        maxMembers: Number(form.maxMembers || 20),
+        availabilityNote: form.availabilityNote || null,
+        personalTrainingCost: form.personalTrainingCost ? Number(form.personalTrainingCost) : null,
+      });
+      setForm(blank); setNotice('Trainer created and ready to receive requests.'); load();
+    } catch (err) { setError(err.response?.data?.error || 'Unable to create trainer.'); }
+  }
+  async function approve(id) {
+    setError(''); setNotice('');
+    try {
+      await api.patch(`/trainer-requests/${id}/approve`);
+      setNotice('Trainer request approved and assignment created.');
+      load();
+    } catch (err) { setError(err.response?.data?.error || 'Unable to approve request.'); }
+  }
   return <DashboardShell title="Trainer management" subtitle="Create trainers, review capacity, and approve member requests."><div className="space-y-6">
     {error && <p className="rounded-3xl border border-red-700 bg-red-950/80 px-4 py-3 text-sm text-red-200">{error}</p>}{notice && <p className="rounded-3xl border border-emerald-700 bg-emerald-950/80 px-4 py-3 text-sm text-emerald-200">{notice}</p>}
     <section className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6"><h2 className="text-xl font-semibold text-white">Create trainer</h2><form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={createTrainer}>{[['fullName','Name'],['email','Email'],['phone','Phone'],['specialization','Specialization'],['experienceYears','Experience (years)'],['maxMembers','Member capacity'],['availabilityNote','Availability'],['personalTrainingCost','Personal-training cost']].map(([key,label]) => <label key={key} className="text-sm text-slate-300">{label}<input required={['fullName','email','experienceYears','maxMembers'].includes(key)} type={key === 'email' ? 'email' : ['experienceYears','maxMembers','personalTrainingCost'].includes(key) ? 'number' : 'text'} min={['experienceYears','maxMembers','personalTrainingCost'].includes(key) ? 0 : undefined} value={form[key]} onChange={(e) => update(key, e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" /></label>)}<label className="text-sm text-slate-300">Temporary password<input required type="password" minLength="8" value={form.password} onChange={(e) => update('password', e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-800 bg-slate-950 px-3 py-2 text-white" /></label><div className="flex items-end"><button className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500">Create trainer</button></div></form></section>

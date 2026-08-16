@@ -32,19 +32,38 @@ async function upsertProfile(req, res) {
   try {
     const user = await pool.query(`SELECT id FROM users WHERE id = $1 AND role = 'trainer'`, [trainerId]);
     if (!user.rows.length) return res.status(404).json({ error: 'Trainer not found' });
+
+    const profileValues = [
+      trainerId,
+      specialization ?? null,
+      experienceYears ?? null,
+      bio ?? null,
+      availabilityNote ?? null,
+      personalTrainingCost ?? null,
+      maxMembers ?? 20,
+      isAvailable ?? true,
+    ];
+
     if (pool.dbType === 'mysql') {
       await pool.query(
         `INSERT INTO trainer_profiles (trainer_id, specialization, experience_years, bio, availability_note, personal_training_cost, max_members, is_available)
-         VALUES ($1,$2,$3,$4,$5,$6,COALESCE($7,20),COALESCE($8,TRUE))
-         ON DUPLICATE KEY UPDATE specialization=COALESCE($2,specialization), experience_years=COALESCE($3,experience_years), bio=COALESCE($4,bio), availability_note=COALESCE($5,availability_note), personal_training_cost=COALESCE($6,personal_training_cost), max_members=COALESCE($7,max_members), is_available=COALESCE($8,is_available)`,
-        [trainerId, specialization || null, experienceYears ?? null, bio || null, availabilityNote || null, personalTrainingCost ?? null, maxMembers ?? null, isAvailable ?? null]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           specialization = VALUES(specialization),
+           experience_years = VALUES(experience_years),
+           bio = VALUES(bio),
+           availability_note = VALUES(availability_note),
+           personal_training_cost = VALUES(personal_training_cost),
+           max_members = VALUES(max_members),
+           is_available = VALUES(is_available)`,
+        profileValues
       );
     } else {
       await pool.query(
         `INSERT INTO trainer_profiles (trainer_id, specialization, experience_years, bio, availability_note, personal_training_cost, max_members, is_available)
-         VALUES ($1,$2,$3,$4,$5,$6,COALESCE($7,20),COALESCE($8,TRUE))
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (trainer_id) DO UPDATE SET specialization=COALESCE(EXCLUDED.specialization, trainer_profiles.specialization), experience_years=COALESCE(EXCLUDED.experience_years, trainer_profiles.experience_years), bio=COALESCE(EXCLUDED.bio, trainer_profiles.bio), availability_note=COALESCE(EXCLUDED.availability_note, trainer_profiles.availability_note), personal_training_cost=COALESCE(EXCLUDED.personal_training_cost, trainer_profiles.personal_training_cost), max_members=COALESCE(EXCLUDED.max_members, trainer_profiles.max_members), is_available=COALESCE(EXCLUDED.is_available, trainer_profiles.is_available), updated_at=NOW()`,
-        [trainerId, specialization || null, experienceYears ?? null, bio || null, availabilityNote || null, personalTrainingCost ?? null, maxMembers ?? null, isAvailable ?? null]
+        profileValues
       );
     }
     const profile = await pool.query('SELECT * FROM trainer_profiles WHERE trainer_id = $1', [trainerId]);
@@ -70,13 +89,21 @@ async function requestTrainer(req, res) {
       `SELECT id FROM trainer_requests WHERE member_id=$1 AND trainer_id=$2 AND status='pending'`, [req.user.id, trainerId]
     );
     if (existing.rows.length) return res.status(409).json({ error: 'A request for this trainer is already pending' });
+    if (pool.dbType === 'mysql') {
+      const created = await pool.query(
+        `INSERT INTO trainer_requests (member_id, trainer_id, note) VALUES (?, ?, ?)`,
+        [req.user.id, trainerId, note || null]
+      );
+      const request = (await pool.query('SELECT * FROM trainer_requests WHERE id = ?', [created.insertId])).rows[0];
+      await logActivity({ userId: req.user.id, action: 'TRAINER_REQUESTED', details: { trainerId } });
+      return res.status(201).json(request);
+    }
+
     const created = await pool.query(
-      pool.dbType === 'mysql'
-        ? `INSERT INTO trainer_requests (member_id, trainer_id, note) VALUES ($1,$2,$3)`
-        : `INSERT INTO trainer_requests (member_id, trainer_id, note) VALUES ($1,$2,$3) RETURNING *`,
+      `INSERT INTO trainer_requests (member_id, trainer_id, note) VALUES ($1,$2,$3) RETURNING *`,
       [req.user.id, trainerId, note || null]
     );
-    const request = created.rows[0] || (await pool.query('SELECT * FROM trainer_requests WHERE id = $1', [created.insertId])).rows[0];
+    const request = created.rows[0];
     await logActivity({ userId: req.user.id, action: 'TRAINER_REQUESTED', details: { trainerId } });
     res.status(201).json(request);
   } catch (err) {
@@ -108,9 +135,12 @@ async function approveRequest(req, res) {
   if (item.status !== 'pending') return res.status(409).json({ error: 'Only pending requests can be approved' });
   try {
     const trainer = await pool.query(
-      `SELECT u.is_active, COALESCE(tp.is_available, TRUE) AS is_available, COALESCE(tp.max_members,20) AS max_members,
-              (SELECT COUNT(*) FROM trainer_assignments WHERE trainer_id=$1 AND status='active') AS assigned_count
-       FROM users u LEFT JOIN trainer_profiles tp ON tp.trainer_id=u.id WHERE u.id=$1 AND u.role='trainer'`, [item.trainer_id]
+      `SELECT u.is_active, COALESCE(tp.is_available, TRUE) AS is_available, COALESCE(tp.max_members, 20) AS max_members,
+              (SELECT COUNT(*) FROM trainer_assignments WHERE trainer_id = $1 AND status = 'active') AS assigned_count
+       FROM users u
+       LEFT JOIN trainer_profiles tp ON tp.trainer_id = u.id
+       WHERE u.id = $1 AND u.role = 'trainer'`,
+      [item.trainer_id]
     );
     const details = trainer.rows[0];
     if (!details?.is_active || !details.is_available || Number(details.assigned_count) >= Number(details.max_members)) return res.status(409).json({ error: 'Trainer is unavailable or at capacity' });

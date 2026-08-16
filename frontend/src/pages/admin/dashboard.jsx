@@ -84,6 +84,45 @@ function AdminDashboardContent() {
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-900">Revenue & fee collection</h3>
+                <p className="text-sm text-slate-500">Paid, pending, and overdue member fees.</p>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
+              <StatCard label="Collected" value={`$${Number(data.revenueSummary?.paidAmount || 0).toLocaleString()}`} accent="emerald" />
+              <StatCard label="Pending" value={`$${Number(data.revenueSummary?.pendingAmount || 0).toLocaleString()}`} accent="amber" />
+              <StatCard label="Overdue" value={`$${Number(data.revenueSummary?.overdueAmount || 0).toLocaleString()}`} accent="rose" />
+              <StatCard label="Unpaid invoices" value={Number(data.revenueSummary?.unpaidInvoices || 0)} accent="sky" />
+            </div>
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="font-medium text-slate-900">Members with unpaid fees</h4>
+                <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Due</span>
+              </div>
+              {(!data.unpaidFees || data.unpaidFees.length === 0) ? (
+                <p className="text-sm text-slate-500">No pending or overdue member fees.</p>
+              ) : (
+                <div className="space-y-3">
+                  {data.unpaidFees.map((fee) => (
+                    <div key={fee.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+                      <div>
+                        <p className="font-medium text-slate-900">{fee.member_name}</p>
+                        <p className="text-xs text-slate-500">{fee.invoice_number}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-slate-900">${Number(fee.amount).toLocaleString()}</p>
+                        <p className="text-xs capitalize text-slate-500">{fee.status}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
               <div>
                 <h3 className="font-semibold text-slate-900">Add a new trainer</h3>
