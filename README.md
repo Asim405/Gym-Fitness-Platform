@@ -37,7 +37,7 @@ Each of `backend/` and `frontend/` is a fully independent app with its own
 
 ---
 
-## 🚀 Quick Start (Local Development)
+##  Quick Start (Local Development)
 
 ### Prerequisites
 - Node.js ≥ 18
@@ -83,19 +83,7 @@ cp .env.local.example .env.local
 npm run dev         # starts on http://localhost:3000
 ```
 
-### 5. Create your first Admin
 
-The `/api/auth/register` endpoint defaults new signups to the `member` role
-for safety. To create the first Admin, either:
-
-- Register normally, then run in `psql`:
-  ```sql
-  UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
-  ```
-- Or seed one directly — see `backend/database/schema.sql` bottom section
-  for a commented-out sample `INSERT`.
-
----
 
 ## 🔐 Authentication Flow
 
