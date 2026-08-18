@@ -44,12 +44,9 @@ export default function Login() {
             <div className="grid gap-4">
               <div className="rounded-3xl bg-slate-950/90 border border-slate-800 p-5">
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Smart Tracking</p>
-                <p className="mt-3 font-semibold text-white">Workout plans, attendance, and progress all connected.</p>
+                <p className="mt-3 font-semibold text-white">Workout plans, attendance, and progress all connected. <br />everything is in one place.</p>
               </div>
-              <div className="rounded-3xl bg-slate-950/90 border border-slate-800 p-5">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Team-ready</p>
-                <p className="mt-3 font-semibold text-white">Trainer and admin tools built for real gym operations.</p>
-              </div>
+              
             </div>
           </section>
 
