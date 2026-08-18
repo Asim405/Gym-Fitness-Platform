@@ -71,10 +71,10 @@ function AdminDashboardContent() {
       {!data ? (
         <p className="text-slate-400">Loading dashboard…</p>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-8 bg-emerald-50/20 p-6 rounded-2xl border border-slate-200">
           {/* Stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard label="Total members" value={data.totalMembers} accent="emerald" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-9  ">
+            <StatCard  label="Total members" value={data.totalMembers} accent="emerald" />
             <StatCard label="Total revenue" value={`$${Number(data.totalRevenue).toLocaleString()}`} accent="sky" />
             <StatCard
               label="Active memberships"
