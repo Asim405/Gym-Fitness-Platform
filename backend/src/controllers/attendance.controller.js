@@ -13,7 +13,7 @@ async function book(req, res) {
     );
     if (!membership.rows.length) return res.status(403).json({ error: 'An active membership is required to book classes' });
     const cls = await pool.query(
-      `SELECT cs.capacity,
+      `SELECT cs.capacity, cs.status, cs.start_time,
               (SELECT COUNT(*) FROM attendance a WHERE a.class_schedule_id = cs.id AND a.status != 'cancelled') AS booked
        FROM class_schedules cs WHERE cs.id = $1`,
       [classScheduleId]
@@ -85,6 +85,8 @@ async function scan(req, res) {
 
     const cls = await pool.query('SELECT capacity, trainer_id FROM class_schedules WHERE id = $1', [classScheduleId]);
     if (!cls.rows.length) return res.status(404).json({ error: 'Class not found' });
+    if (cls.rows[0].status !== 'scheduled') return res.status(409).json({ error: 'This class is not accepting bookings' });
+    if (new Date(cls.rows[0].start_time) <= new Date()) return res.status(409).json({ error: 'This class has already started' });
     if (req.user.role === 'trainer' && cls.rows[0].trainer_id !== req.user.id) {
       return res.status(403).json({ error: 'You can only scan attendance for your own classes' });
     }
@@ -127,7 +129,7 @@ async function scan(req, res) {
 // PATCH /api/attendance/:id/check-in  (trainer/admin marks a member present)
 async function checkIn(req, res) {
   try {
-    const booking = await pool.query('SELECT a.member_id, cs.trainer_id FROM attendance a JOIN class_schedules cs ON cs.id=a.class_schedule_id WHERE a.id=$1', [req.params.id]);
+    const booking = await pool.query('SELECT a.member_id, cs.trainer_id, cs.start_time FROM attendance a JOIN class_schedules cs ON cs.id=a.class_schedule_id WHERE a.id=$1', [req.params.id]);
     if (!booking.rows.length) return res.status(404).json({ error: 'Booking not found' });
     if (req.user.role === 'trainer' && booking.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only check in attendees for your classes' });
     await pool.query(
@@ -153,6 +155,7 @@ async function cancel(req, res) {
     const booking = await pool.query('SELECT a.member_id, cs.trainer_id FROM attendance a JOIN class_schedules cs ON cs.id=a.class_schedule_id WHERE a.id=$1', [req.params.id]);
     if (!booking.rows.length) return res.status(404).json({ error: 'Booking not found' });
     if (req.user.role === 'member' && booking.rows[0].member_id !== req.user.id) return res.status(403).json({ error: 'You can only cancel your own booking' });
+    if (req.user.role === 'member' && new Date(booking.rows[0].start_time) <= new Date()) return res.status(409).json({ error: 'Bookings cannot be cancelled after the class starts' });
     if (req.user.role === 'trainer' && booking.rows[0].trainer_id !== req.user.id) return res.status(403).json({ error: 'You can only manage bookings for your classes' });
     await pool.query(
       `UPDATE attendance SET status = 'cancelled' WHERE id = $1`,

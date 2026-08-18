@@ -10,6 +10,7 @@ const NAV = {
     { label: 'Memberships', href: '/admin/memberships' },
     { label: 'Classes', href: '/admin/classes' },
     { label: 'Inventory', href: '/admin/inventory' },
+    { label: 'Payments & invoices', href: '/admin/payments' },
   ],
   trainer: [
     { label: 'Overview', href: '/trainer/dashboard' },

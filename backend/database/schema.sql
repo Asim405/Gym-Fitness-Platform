@@ -113,7 +113,7 @@ CREATE TABLE memberships (
     start_date          DATE    NOT NULL DEFAULT CURRENT_DATE,
     end_date            DATE    NOT NULL,
     status              VARCHAR(20) NOT NULL DEFAULT 'pending'
-                            CHECK (status IN ('active', 'expired', 'pending', 'cancelled')),
+                            CHECK (status IN ('active', 'expired', 'pending', 'approved', 'rejected', 'cancelled')),
     amount_paid         NUMERIC(10,2) NOT NULL DEFAULT 0,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -146,6 +146,7 @@ CREATE INDEX idx_exercises_name   ON exercises(name);
 CREATE TABLE workout_plans (
     id              SERIAL PRIMARY KEY,
     title           VARCHAR(150) NOT NULL,
+    description     TEXT,
     description     TEXT,
     trainer_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     member_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -183,6 +184,7 @@ CREATE TABLE class_schedules (
     end_time        TIMESTAMPTZ NOT NULL,
     capacity        INTEGER NOT NULL DEFAULT 20 CHECK (capacity > 0),
     location        VARCHAR(120),
+    status          VARCHAR(20) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'cancelled', 'completed')),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CHECK (end_time > start_time)
 );

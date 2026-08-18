@@ -12,6 +12,7 @@ router.post('/trainer-requests', authorize('member'), [body('trainerId').isInt()
 router.get('/trainer-requests', authorize('admin', 'trainer', 'member'), ctrl.listRequests);
 router.patch('/trainer-requests/:id/approve', authorize('admin', 'trainer'), ctrl.approveRequest);
 router.patch('/trainer-requests/:id/status', [body('status').isIn(['rejected', 'cancelled'])], validate, ctrl.updateRequestStatus);
+router.post('/trainer-assignments', authorize('admin'), [body('memberId').isInt(), body('trainerId').isInt()], validate, ctrl.createAssignment);
 router.get('/trainer-assignments/me', authorize('member'), ctrl.myAssignment);
 router.delete('/trainer-assignments/:id', authorize('admin', 'trainer', 'member'), ctrl.endAssignment);
 

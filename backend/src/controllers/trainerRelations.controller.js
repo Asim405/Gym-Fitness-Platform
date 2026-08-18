@@ -59,13 +59,25 @@ async function requestTrainer(req, res) {
   const { trainerId, note } = req.body;
   try {
     const trainer = await pool.query(
-      `SELECT u.id, u.is_active, COALESCE(tp.is_available, TRUE) AS is_available
+      `SELECT u.id, u.is_active, COALESCE(tp.is_available, TRUE) AS is_available,
+              COALESCE(tp.max_members, 20) AS max_members
        FROM users u LEFT JOIN trainer_profiles tp ON tp.trainer_id = u.id
        WHERE u.id = $1 AND u.role = 'trainer'`, [trainerId]
     );
     if (!trainer.rows.length || !trainer.rows[0].is_active || !trainer.rows[0].is_available) {
       return res.status(400).json({ error: 'This trainer is not available for requests' });
     }
+    const capacity = await pool.query(
+      `SELECT COUNT(*) AS assigned_count FROM trainer_assignments WHERE trainer_id=$1 AND status='active'`,
+      [trainerId]
+    );
+    if (Number(capacity.rows[0].assigned_count) >= Number(trainer.rows[0].max_members || 20)) {
+      return res.status(409).json({ error: 'This trainer is currently at capacity' });
+    }
+    const activeAssignment = await pool.query(
+      `SELECT id FROM trainer_assignments WHERE member_id=$1 AND status='active'`, [req.user.id]
+    );
+    if (activeAssignment.rows.length) return res.status(409).json({ error: 'You already have an active trainer assignment' });
     const existing = await pool.query(
       `SELECT id FROM trainer_requests WHERE member_id=$1 AND trainer_id=$2 AND status='pending'`, [req.user.id, trainerId]
     );
@@ -129,6 +141,55 @@ async function approveRequest(req, res) {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to approve trainer request' }); }
 }
 
+// Admins can create an assignment directly when onboarding a member or resolving a request offline.
+// The same availability and capacity checks used by request approval apply here.
+async function createAssignment(req, res) {
+  const { memberId, trainerId } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const member = await client.query(`SELECT id FROM users WHERE id=$1 AND role='member' AND is_active=TRUE`, [memberId]);
+    if (!member.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Active member not found' });
+    }
+    const trainer = await client.query(
+      `SELECT u.id, u.is_active, COALESCE(tp.is_available, TRUE) AS is_available,
+              COALESCE(tp.max_members, 20) AS max_members
+       FROM users u LEFT JOIN trainer_profiles tp ON tp.trainer_id=u.id
+       WHERE u.id=$1 AND u.role='trainer' FOR UPDATE`, [trainerId]
+    );
+    if (!trainer.rows.length || !trainer.rows[0].is_active || !trainer.rows[0].is_available) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Trainer is unavailable' });
+    }
+    const active = await client.query(`SELECT id FROM trainer_assignments WHERE member_id=$1 AND status='active'`, [memberId]);
+    if (active.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Member already has an active trainer assignment' });
+    }
+    const workload = await client.query(`SELECT COUNT(*) AS assigned_count FROM trainer_assignments WHERE trainer_id=$1 AND status='active'`, [trainerId]);
+    if (Number(workload.rows[0].assigned_count) >= Number(trainer.rows[0].max_members)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Trainer is at capacity' });
+    }
+    const inserted = await client.query(
+      `INSERT INTO trainer_assignments (member_id, trainer_id, assigned_by) VALUES ($1,$2,$3)`,
+      [memberId, trainerId, req.user.id]
+    );
+    await client.query('COMMIT');
+    const assignment = await pool.query('SELECT * FROM trainer_assignments WHERE id=$1', [inserted.insertId]);
+    await logActivity({ userId: req.user.id, action: 'TRAINER_ASSIGNED', details: { memberId, trainerId } });
+    res.status(201).json(assignment.rows[0]);
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) { /* transaction already closed */ }
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create trainer assignment' });
+  } finally {
+    client.release();
+  }
+}
+
 async function updateRequestStatus(req, res) {
   const { status } = req.body;
   const found = await pool.query('SELECT * FROM trainer_requests WHERE id=$1', [req.params.id]);
@@ -161,4 +222,4 @@ async function endAssignment(req, res) {
   res.status(204).send();
 }
 
-module.exports = { listTrainers, upsertProfile, requestTrainer, listRequests, approveRequest, updateRequestStatus, myAssignment, endAssignment };
+module.exports = { listTrainers, upsertProfile, requestTrainer, listRequests, approveRequest, updateRequestStatus, createAssignment, myAssignment, endAssignment };
