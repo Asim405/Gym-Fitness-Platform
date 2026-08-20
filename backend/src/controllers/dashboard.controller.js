@@ -18,6 +18,7 @@ async function adminSummary(req, res) {
     const last14Days = isMySQL ? "DATE_SUB(NOW(), INTERVAL 14 DAY)" : "NOW() - INTERVAL '14 days'";
     const last12Months = isMySQL ? "DATE_SUB(NOW(), INTERVAL 12 MONTH)" : "NOW() - INTERVAL '12 months'";
     const monthExpr = isMySQL ? "DATE_FORMAT(created_at, '%Y-%m')" : "TO_CHAR(created_at, 'YYYY-MM')";
+    const hourExpr = isMySQL ? "HOUR(checked_in_at)" : "EXTRACT(HOUR FROM checked_in_at)";
 
     const [members, trainers, revenue, statusBreakdown, attendanceTrend, activeCounts, monthlyRevenue, registrations, trainerAllocation, invoiceSummary, unpaidFees, lowStock, recentMembers, upcomingClasses] = await Promise.all([
       pool.query(`SELECT COUNT(*) AS total FROM users WHERE role = 'member'`),

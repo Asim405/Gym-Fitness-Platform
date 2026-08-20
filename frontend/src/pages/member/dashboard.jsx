@@ -48,9 +48,11 @@ function MemberDashboardContent() {
         weightKg: Number(progressForm.weightKg),
         bodyFatPct: progressForm.bodyFatPct ? Number(progressForm.bodyFatPct) : null,
         goalNote: progressForm.goalNote || null,
-        recordedAt: new Date().toISOString(),
+        recordedAt: new Date().toISOString().slice(0, 10),
       });
-      setFeedback('Progress logged successfully. Refresh the page to view updates.');
+      const { data: refreshed } = await api.get('/dashboard/member');
+      setData(refreshed);
+      setFeedback('Progress logged successfully.');
       setProgressForm({ weightKg: '', bodyFatPct: '', goalNote: '' });
     } catch (err) {
       setError(err.response?.data?.error || 'Could not log progress.');

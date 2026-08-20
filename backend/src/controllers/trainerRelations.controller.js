@@ -66,7 +66,7 @@ async function upsertProfile(req, res) {
     } else {
       await dbQuery(
         `INSERT INTO trainer_profiles (trainer_id, specialization, experience_years, bio, availability_note, personal_training_cost, max_members, is_available)
-         VALUES ($1,$2,$3,$4,$5,$6,COALESCE($7,20),COALESCE($8,TRUE))
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (trainer_id) DO UPDATE SET specialization=COALESCE(EXCLUDED.specialization, trainer_profiles.specialization), experience_years=COALESCE(EXCLUDED.experience_years, trainer_profiles.experience_years), bio=COALESCE(EXCLUDED.bio, trainer_profiles.bio), availability_note=COALESCE(EXCLUDED.availability_note, trainer_profiles.availability_note), personal_training_cost=COALESCE(EXCLUDED.personal_training_cost, trainer_profiles.personal_training_cost), max_members=COALESCE(EXCLUDED.max_members, trainer_profiles.max_members), is_available=COALESCE(EXCLUDED.is_available, trainer_profiles.is_available), updated_at=NOW()`,
         params
       );
