@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
+import { UserCircleIcon, UserGroupIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 
 export default function Login() {
   const { login, homeForRole } = useAuth();
@@ -27,102 +28,132 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.25),_transparent_20%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.16),_transparent_25%)]" />
-        <div className="relative mx-auto grid min-h-screen max-w-7xl gap-12 px-6 py-10 lg:grid-cols-2 lg:items-center lg:px-12 lg:py-16">
-          <section className="hidden flex-col justify-center gap-8 rounded-[2rem] border border-slate-800 bg-slate-900/80 p-10 shadow-2xl shadow-slate-950/40 lg:flex">
+    <div className="min-h-screen relative bg-[#0c0f12] text-slate-200 font-sans antialiased flex items-center justify-center px-4 py-12">
+      {/* Very subtle animated gradient background – no orbs */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-[#0c0f12] via-[#141a1f] to-[#1a232b] animate-gradient-subtle" />
+
+      {/* Main card – minimal, with soft border and shadow */}
+      <div className="w-full max-w-5xl rounded-2xl border border-white/5 bg-[#141a1f]/80 shadow-2xl shadow-black/40 backdrop-blur-sm overflow-hidden md:grid md:grid-cols-2">
+        {/* LEFT – Brand / Value proposition */}
+        <div className="flex flex-col justify-center p-8 md:p-12 bg-[#0c0f12]/50">
+          <div className="mb-6">
+            <span className="text-2xl font-light tracking-wider text-white/90">
+              Pulse<span className="font-medium text-emerald-400">Fit</span>
+            </span>
+          </div>
+          <h1 className="text-3xl font-light tracking-tight text-white/90 leading-tight">
+            Your fitness journey <br /> starts here.
+          </h1>
+          <p className="mt-4 max-w-sm text-slate-400 text-sm leading-relaxed">
+            Track workouts, monitor progress, and connect with trainers – all in one place.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-2">
+            <span className="rounded-full border border-white/5 bg-white/5 px-3 py-1 text-xs font-light text-slate-300">
+              🏋️ Workouts
+            </span>
+            <span className="rounded-full border border-white/5 bg-white/5 px-3 py-1 text-xs font-light text-slate-300">
+              📊 Analytics
+            </span>
+            <span className="rounded-full border border-white/5 bg-white/5 px-3 py-1 text-xs font-light text-slate-300">
+              🧘 Community
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT – Login Form */}
+        <div className="p-8 md:p-12">
+          <div className="mb-8">
+            <h2 className="text-2xl font-light tracking-tight text-white/90">Welcome back</h2>
+            <p className="mt-1 text-sm text-slate-400">Sign in to continue your fitness journey.</p>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <span className="inline-flex rounded-full bg-emerald-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
-                PulseFit
-              </span>
-              <h1 className="mt-8 text-5xl font-semibold tracking-tight text-white">Train harder, recover smarter.</h1>
-              <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
-                The modern gym management platform for members, trainers, and admins. Track attendance, plan diets, manage classes, and boost results with one polished experience.
-              </p>
-            </div>
-            <div className="grid gap-4">
-              <div className="rounded-3xl bg-slate-950/90 border border-slate-800 p-5">
-                <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Smart Tracking</p>
-                <p className="mt-3 font-semibold text-white">Workout plans, attendance, and progress all connected. <br />everything is in one place.</p>
-              </div>
-              
-            </div>
-          </section>
-
-          <section className="mx-auto w-full max-w-md rounded-[2rem] border border-slate-800 bg-slate-900/95 p-10 shadow-2xl shadow-slate-950/40 backdrop-blur-sm">
-            <div className="mb-8">
-              <p className="text-sm uppercase tracking-[0.3em] text-emerald-300">Welcome back</p>
-              <h2 className="mt-4 text-3xl font-semibold text-white">Sign in to PulseFit</h2>
-              <p className="mt-3 text-sm text-slate-400">Choose your role, then enter your login details to continue.</p>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="you@example.com"
+              />
             </div>
 
-            {error && (
-              <div className="rounded-3xl bg-red-950/80 border border-red-800 px-4 py-3 text-sm text-red-300">
-                {error}
-              </div>
-            )}
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Password</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="••••••••"
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-3xl border border-slate-800 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  placeholder="name@example.com"
-                />
-              </div>
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-lg bg-emerald-500/90 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 transition-colors disabled:opacity-60"
+            >
+              {busy ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-3xl border border-slate-800 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full rounded-3xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {busy ? 'Signing in…' : 'Sign in'}
-              </button>
-            </form>
-
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              {['member', 'trainer', 'admin'].map((role) => (
+          {/* Role selector – subtle pill toggle */}
+          <div className="mt-8">
+            <p className="text-center text-xs text-slate-500 uppercase tracking-wider">I am a</p>
+            <div className="mt-3 flex justify-center gap-2">
+              {[
+                { role: 'member', label: 'Member', icon: UserCircleIcon },
+                { role: 'trainer', label: 'Trainer', icon: UserGroupIcon },
+                { role: 'admin', label: 'Admin', icon: ShieldCheckIcon },
+              ].map(({ role, label, icon: Icon }) => (
                 <button
                   key={role}
                   type="button"
                   onClick={() => setSelectedRole(role)}
-                  className={`rounded-3xl border px-3 py-2 text-sm font-medium transition ${
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                     selectedRole === role
-                      ? 'border-emerald-500 bg-emerald-600 text-white'
-                      : 'border-slate-800 bg-slate-950 text-slate-400 hover:border-slate-700 hover:text-white'
+                      ? 'border-emerald-400/50 bg-emerald-500/10 text-white'
+                      : 'border-white/10 bg-transparent text-slate-400 hover:border-white/20 hover:text-white'
                   }`}
                 >
-                  {role}
+                  <Icon className="h-4 w-4" />
+                  {label}
                 </button>
               ))}
             </div>
+          </div>
 
-            <p className="mt-6 text-center text-sm text-slate-400">
-              New to PulseFit?{' '}
-              <Link href="/register" className="font-medium text-emerald-400 hover:text-emerald-300">
-                Create an account
-              </Link>
-            </p>
-          </section>
+          <p className="mt-6 text-center text-sm text-slate-400">
+            Don't have an account?{' '}
+            <Link href="/register" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+              Create one
+            </Link>
+          </p>
         </div>
       </div>
+
+      {/* Custom keyframe for subtle gradient animation */}
+      <style jsx>{`
+        @keyframes gradient-subtle {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .animate-gradient-subtle {
+          background-size: 300% 300%;
+          animation: gradient-subtle 20s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

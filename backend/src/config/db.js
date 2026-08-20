@@ -8,7 +8,6 @@ const dbType = process.env.DB_TYPE || 'postgres';
 let pool;
 
 if (dbType === 'mysql') {
-  // Updated path to point to backend/ssl/ca.pem
   const caPath = path.join(__dirname, '../../ssl/ca.pem');
 
   const mysqlPool = mysql.createPool({
@@ -20,12 +19,11 @@ if (dbType === 'mysql') {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    ssl:false,
-    //  fs.existsSync(caPath)
-    //   ? { ca: fs.readFileSync(caPath) }
-    //   : { rejectUnauthorized: false },
+    ssl: false,
+    // fs.existsSync(caPath) ? { ca: fs.readFileSync(caPath) } : { rejectUnauthorized: false },
   });
 
+  // Wrapper for the pool itself (no recursion)
   const wrapQuery = async (sql, params) => {
     const formattedSql = sql.replace(/\$([0-9]+)/g, '?');
     const [rows] = await mysqlPool.query(formattedSql, params);
@@ -37,18 +35,26 @@ if (dbType === 'mysql') {
     query: wrapQuery,
     connect: async () => {
       const conn = await mysqlPool.getConnection();
+      // Store the original query method BEFORE overriding
+      const originalQuery = conn.query.bind(conn);
+
+      // Custom wrapper that uses the original query
       const connQuery = async (sql, params) => {
         const formattedSql = sql.replace(/\$([0-9]+)/g, '?');
-        const [rows] = await conn.query(formattedSql, params);
+        const [rows] = await originalQuery(formattedSql, params);
         if (Array.isArray(rows)) return { rows, rowCount: rows.length };
         return { rows: [], rowCount: rows.affectedRows ?? 0, insertId: rows.insertId ?? null };
       };
+
       conn.query = connQuery;
       return conn;
     },
     end: mysqlPool.end.bind(mysqlPool),
+    // expose dbType for the adapters
+    dbType: 'mysql',
   };
 } else {
+  // PostgreSQL
   const pgPool = process.env.DATABASE_URL
     ? new Pool({
         connectionString: process.env.DATABASE_URL,
@@ -77,6 +83,7 @@ if (dbType === 'mysql') {
     },
     end: pgPool.end.bind(pgPool),
     on: pgPool.on.bind(pgPool),
+    dbType: 'postgres',
   };
 
   pool.on('error', (err) => {

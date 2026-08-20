@@ -47,8 +47,13 @@ async function updatePlan(req, res) {
 async function assign(req, res) {
   const { memberId, membershipPlanId, startDate, amountPaid } = req.body;
   try {
-    const plan = await pool.query('SELECT duration_days FROM membership_plans WHERE id = $1', [membershipPlanId]);
+    const [member, plan] = await Promise.all([
+      pool.query(`SELECT id FROM users WHERE id=$1 AND role='member'`, [memberId]),
+      pool.query(`SELECT duration_days, status FROM membership_plans WHERE id = $1`, [membershipPlanId]),
+    ]);
+    if (!member.rows.length) return res.status(404).json({ error: 'Member not found' });
     if (!plan.rows.length) return res.status(404).json({ error: 'Plan not found' });
+    if (plan.rows[0].status !== 'active') return res.status(409).json({ error: 'Inactive membership plans cannot be assigned' });
 
     const start = startDate ? new Date(startDate) : new Date();
     const end = new Date(start);
@@ -120,12 +125,17 @@ async function list(req, res) {
 async function updateStatus(req, res) {
   const { status } = req.body;
   try {
+    const existing = await pool.query(`SELECT member_id FROM memberships WHERE id=$1`, [req.params.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Membership not found' });
+    if (status === 'active') {
+      const active = await pool.query(`SELECT id FROM memberships WHERE member_id=$1 AND status='active' AND id <> $2`, [existing.rows[0].member_id, req.params.id]);
+      if (active.rows.length) return res.status(409).json({ error: 'End the member’s current membership before activating another one' });
+    }
     await pool.query(
       `UPDATE memberships SET status = $1 WHERE id = $2`,
       [status, req.params.id]
     );
     const result = await pool.query('SELECT * FROM memberships WHERE id = $1', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Membership not found' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);

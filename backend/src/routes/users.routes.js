@@ -24,7 +24,7 @@ router.post(
   ctrl.create
 );
 
-router.put('/:id', authorize('admin', 'member'), ctrl.update);
+router.put('/:id', authorize('admin', 'trainer', 'member'), ctrl.update);
 router.delete('/:id', authorize('admin'), ctrl.remove);
 
 module.exports = router;

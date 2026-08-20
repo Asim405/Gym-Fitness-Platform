@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import DashboardShell from '../../components/DashboardShell';
 import api from '../../lib/api';
+import { CalendarIcon, UserIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
 
 function TrainerDietPlans() {
   const [plans, setPlans] = useState([]);
@@ -41,101 +42,142 @@ function TrainerDietPlans() {
 
   return (
     <DashboardShell title="Diet plans" subtitle="Create and review diet plans for members">
-      <div className="space-y-6">
-        {error && <p className="text-red-600">{error}</p>}
-        {status && <p className="text-emerald-600">{status}</p>}
+      <div className="space-y-8">
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+        {status && (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 text-sm text-emerald-300">
+            {status}
+          </div>
+        )}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">Create diet plan</h2>
-          <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-2">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Member ID</span>
+        {/* Create Form */}
+        <section className="rounded-2xl border border-white/5 bg-[#141a1f]/80 p-6 shadow-2xl shadow-black/30">
+          <h2 className="flex items-center gap-2 text-base font-light tracking-tight text-white/90">
+            <ClipboardDocumentListIcon className="h-5 w-5 text-emerald-400/60" />
+            Create diet plan
+          </h2>
+          <form onSubmit={handleSubmit} className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Title</label>
+              <input
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                required
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="e.g. High‑protein meal plan"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Member ID</label>
               <input
                 type="number"
                 value={form.memberId}
                 onChange={(e) => setForm((prev) => ({ ...prev, memberId: e.target.value }))}
                 required
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="Enter member ID"
               />
-            </label>
-            <label className="block lg:col-span-2">
-              <span className="text-sm font-medium text-slate-700">Title</span>
-              <input
-                value={form.title}
-                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                required
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Calories</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Calories</label>
               <input
                 type="number"
                 value={form.calories}
                 onChange={(e) => setForm((prev) => ({ ...prev, calories: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="e.g. 2000"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Protein</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Protein (g)</label>
               <input
                 type="number"
                 value={form.protein}
                 onChange={(e) => setForm((prev) => ({ ...prev, protein: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="e.g. 150"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Carbs</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Carbs (g)</label>
               <input
                 type="number"
                 value={form.carbs}
                 onChange={(e) => setForm((prev) => ({ ...prev, carbs: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="e.g. 250"
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Fats</span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Fats (g)</label>
               <input
                 type="number"
                 value={form.fats}
                 onChange={(e) => setForm((prev) => ({ ...prev, fats: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="e.g. 70"
               />
-            </label>
-            <label className="block lg:col-span-2">
-              <span className="text-sm font-medium text-slate-700">Notes</span>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Notes</label>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-                rows={4}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                rows={3}
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+                placeholder="Additional instructions, meal timing, etc."
               />
-            </label>
-            <button className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-500" type="submit">
-              Save diet plan
-            </button>
+            </div>
+
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-emerald-500/90 px-8 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
+              >
+                Save diet plan
+              </button>
+            </div>
           </form>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">Recent diet plans</h2>
+        {/* Recent Plans List */}
+        <section className="rounded-2xl border border-white/5 bg-[#141a1f]/80 p-6 shadow-2xl shadow-black/30">
+          <h2 className="flex items-center gap-2 text-base font-light tracking-tight text-white/90">
+            <CalendarIcon className="h-5 w-5 text-emerald-400/60" />
+            Recent diet plans
+          </h2>
           {plans.length === 0 ? (
-            <p className="text-slate-500">No diet plans created yet.</p>
+            <p className="mt-4 text-sm text-slate-400">No diet plans created yet.</p>
           ) : (
-            <div className="space-y-4">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
               {plans.map((plan) => (
-                <div key={plan.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="font-semibold text-slate-900">{plan.title}</h3>
-                    <span className="text-sm text-slate-500">Member {plan.member_id}</span>
+                <div
+                  key={plan.id}
+                  className="rounded-xl border border-white/5 bg-[#0c0f12]/50 p-5 transition hover:border-white/10"
+                >
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-base font-light tracking-tight text-white/90">{plan.title}</h3>
+                    <span className="flex items-center gap-1 rounded-full border border-white/5 bg-white/5 px-2.5 py-0.5 text-xs text-slate-400">
+                      <UserIcon className="h-3.5 w-3.5" />
+                      {plan.member_id}
+                    </span>
                   </div>
-                  <p className="text-sm text-slate-600 mt-2">{plan.notes || 'No additional notes.'}</p>
-                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-slate-700">
-                    <div>Calories: {plan.calories ?? '—'}</div>
-                    <div>Protein: {plan.protein ?? '—'}</div>
-                    <div>Carbs: {plan.carbs ?? '—'}</div>
-                    <div>Fats: {plan.fats ?? '—'}</div>
+                  <p className="mt-2 text-sm text-slate-400">{plan.notes || 'No additional notes.'}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium">
+                    <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-amber-300/70">🔥 {plan.calories ?? '—'}</span>
+                    <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-blue-300/70">💪 {plan.protein ?? '—'}g</span>
+                    <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-emerald-300/70">🍞 {plan.carbs ?? '—'}g</span>
+                    <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-rose-300/70">🥑 {plan.fats ?? '—'}g</span>
                   </div>
                 </div>
               ))}

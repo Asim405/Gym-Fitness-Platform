@@ -16,6 +16,7 @@ router.post(
     body('memberId').isInt(),
     body('amount').isFloat({ min: 0 }),
     body('paymentMethod').trim().notEmpty(),
+    body('invoiceId').optional().isInt(),
   ],
   validate,
   ctrl.create

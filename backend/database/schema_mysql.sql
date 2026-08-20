@@ -116,7 +116,7 @@ CREATE TABLE memberships (
   amount_paid DECIMAL(10,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CHECK (status IN ('active', 'expired', 'pending', 'cancelled')),
+  CHECK (status IN ('active', 'expired', 'pending', 'approved', 'rejected', 'cancelled')),
   FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (membership_plan_id) REFERENCES membership_plans(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -143,6 +143,7 @@ CREATE INDEX idx_exercises_name ON exercises(name);
 CREATE TABLE workout_plans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(150) NOT NULL,
+  description TEXT,
   description TEXT,
   trainer_id INT NOT NULL,
   member_id INT,
@@ -180,8 +181,10 @@ CREATE TABLE class_schedules (
   end_time TIMESTAMP NOT NULL,
   capacity INT NOT NULL DEFAULT 20,
   location VARCHAR(120),
+  status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK (capacity > 0),
+  CHECK (status IN ('scheduled', 'cancelled', 'completed')),
   CHECK (end_time > start_time),
   FOREIGN KEY (trainer_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

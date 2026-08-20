@@ -67,7 +67,7 @@ async function getById(req, res) {
     if (req.user.role === 'member' && req.user.id !== Number(req.params.id)) {
       return res.status(403).json({ error: 'Members may only view their own profile' });
     }
-    if (req.user.role === 'trainer' && !(await canTrainerAccessMember(req.user.id, Number(req.params.id)))) {
+    if (req.user.role === 'trainer' && req.user.id !== Number(req.params.id) && !(await canTrainerAccessMember(req.user.id, Number(req.params.id)))) {
       return res.status(403).json({ error: 'You are not authorized to access this member' });
     }
     const result = await pool.query(
@@ -110,8 +110,9 @@ async function create(req, res) {
 async function update(req, res) {
   const { fullName, phone, dateOfBirth, gender, heightCm, isActive } = req.body;
   try {
-    if (req.user.role === 'member' && req.user.id !== Number(req.params.id)) {
-      return res.status(403).json({ error: 'Members may only update their own profile' });
+    const targetId = Number(req.params.id);
+    if (req.user.role !== 'admin' && req.user.id !== targetId) {
+      return res.status(403).json({ error: 'You may only update your own profile' });
     }
 
     await pool.query(
@@ -121,10 +122,10 @@ async function update(req, res) {
          date_of_birth = COALESCE($3, date_of_birth),
          gender = COALESCE($4, gender),
          height_cm = COALESCE($5, height_cm),
-         is_active = COALESCE($6, is_active),
+         is_active = CASE WHEN $8 = 'admin' THEN COALESCE($6, is_active) ELSE is_active END,
          updated_at = NOW()
        WHERE id = $7`,
-      [fullName, phone, dateOfBirth, gender, heightCm, isActive, req.params.id]
+      [fullName, phone, dateOfBirth, gender, heightCm, isActive, req.params.id, req.user.role]
     );
     const result = await pool.query(
       `SELECT id, full_name, email, role, phone, date_of_birth, gender, height_cm, is_active

@@ -50,20 +50,44 @@ async function getById(req, res) {
 }
 
 async function create(req, res) {
-  const { memberId, amount, paymentMethod, reference, notes } = req.body;
+  const { memberId, invoiceId, amount, paymentMethod, reference, notes } = req.body;
+  const client = await pool.connect();
   try {
     if (!(await requireMemberAccess(req, res, memberId))) return;
-    const insertResult = await pool.query(
-      `INSERT INTO payments (member_id, amount, payment_method, reference, notes)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [memberId, amount, paymentMethod, reference || null, notes || null]
+    await client.query('BEGIN');
+    if (invoiceId) {
+      const invoice = await client.query(`SELECT id, member_id, amount, status FROM invoices WHERE id=$1 FOR UPDATE`, [invoiceId]);
+      if (!invoice.rows.length || Number(invoice.rows[0].member_id) !== Number(memberId)) {
+        await client.query('ROLLBACK');
+        return res.status(422).json({ error: 'Invoice does not belong to this member' });
+      }
+      if (['paid', 'cancelled'].includes(invoice.rows[0].status)) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'This invoice cannot accept a payment' });
+      }
+    }
+    const insertResult = await client.query(
+      `INSERT INTO payments (member_id, invoice_id, amount, payment_method, reference, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [memberId, invoiceId || null, amount, paymentMethod, reference || null, notes || null]
     );
+    if (invoiceId) {
+      const totals = await client.query(`SELECT COALESCE(SUM(amount), 0) AS paid_total FROM payments WHERE invoice_id=$1`, [invoiceId]);
+      const invoice = await client.query(`SELECT amount FROM invoices WHERE id=$1`, [invoiceId]);
+      if (Number(totals.rows[0].paid_total) >= Number(invoice.rows[0].amount)) {
+        await client.query(`UPDATE invoices SET status='paid', paid_at=NOW() WHERE id=$1`, [invoiceId]);
+      }
+    }
+    await client.query('COMMIT');
     const created = await pool.query('SELECT * FROM payments WHERE id = $1', [insertResult.insertId]);
     await logActivity({ userId: req.user.id, action: 'PAYMENT_CREATED', details: { paymentId: insertResult.insertId } });
     res.status(201).json(created.rows[0]);
   } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) { /* transaction already closed */ }
     console.error(err);
     res.status(500).json({ error: 'Failed to create payment' });
+  } finally {
+    client.release();
   }
 }
 

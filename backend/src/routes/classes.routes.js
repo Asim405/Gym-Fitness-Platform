@@ -19,12 +19,15 @@ router.post(
     body('title').trim().notEmpty(),
     body('startTime').isISO8601(),
     body('endTime').isISO8601(),
+    body('trainerId').optional().isInt(),
+    body('capacity').optional().isInt({ min: 1 }),
+    body('status').optional().isIn(['scheduled', 'cancelled', 'completed']),
   ],
   validate,
   ctrl.create
 );
 
-router.put('/:id', authorize('admin', 'trainer'), ctrl.update);
+router.put('/:id', authorize('admin', 'trainer'), [body('title').optional().trim().notEmpty(), body('startTime').optional().isISO8601(), body('endTime').optional().isISO8601(), body('trainerId').optional().isInt(), body('capacity').optional().isInt({ min: 1 }), body('status').optional().isIn(['scheduled', 'cancelled', 'completed'])], validate, ctrl.update);
 router.delete('/:id', authorize('admin', 'trainer'), ctrl.remove);
 
 module.exports = router;
