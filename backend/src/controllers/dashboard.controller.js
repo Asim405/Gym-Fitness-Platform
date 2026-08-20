@@ -19,11 +19,7 @@ async function adminSummary(req, res) {
     const last12Months = isMySQL ? "DATE_SUB(NOW(), INTERVAL 12 MONTH)" : "NOW() - INTERVAL '12 months'";
     const monthExpr = isMySQL ? "DATE_FORMAT(created_at, '%Y-%m')" : "TO_CHAR(created_at, 'YYYY-MM')";
 
-<<<<<<< Updated upstream
-    const [members, revenue, statusBreakdown, attendanceTrend, activeCounts, monthlyRevenue, peakHours, trainerAllocation] = await Promise.all([
-=======
     const [members, trainers, revenue, statusBreakdown, attendanceTrend, activeCounts, monthlyRevenue, registrations, trainerAllocation, invoiceSummary, unpaidFees, lowStock, recentMembers, upcomingClasses] = await Promise.all([
->>>>>>> Stashed changes
       pool.query(`SELECT COUNT(*) AS total FROM users WHERE role = 'member'`),
       pool.query(`SELECT COUNT(*) AS total FROM users WHERE role = 'trainer' AND is_active=TRUE`),
       pool.query(`SELECT COALESCE(SUM(amount_paid), 0) AS total FROM memberships`),
@@ -48,17 +44,10 @@ async function adminSummary(req, res) {
          ORDER BY month ASC`
       ),
       pool.query(
-<<<<<<< Updated upstream
-        `SELECT EXTRACT(HOUR FROM checked_in_at) AS hour, COUNT(*) AS count
-         FROM attendance
-         WHERE checked_in_at IS NOT NULL AND checked_in_at >= ${last30Days}
-         GROUP BY EXTRACT(HOUR FROM checked_in_at) ORDER BY count DESC LIMIT 8`
-=======
         `SELECT ${monthExpr} AS month, COUNT(*) AS count
          FROM users
          WHERE role='member' AND created_at >= ${last12Months}
          GROUP BY ${monthExpr} ORDER BY month ASC`
->>>>>>> Stashed changes
       ),
       dashboardQuery('trainer workload', `
         SELECT u.id AS trainer_id, u.full_name AS trainer_name,
@@ -73,8 +62,6 @@ async function adminSummary(req, res) {
         ORDER BY assigned_members DESC, classes_count DESC
         LIMIT 10`
       ),
-<<<<<<< Updated upstream
-=======
       dashboardQuery('invoice summary', `
         SELECT
           COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paidAmount,
@@ -95,17 +82,12 @@ async function adminSummary(req, res) {
       dashboardQuery('low stock', `SELECT id, name, quantity, minimum_stock, status FROM inventory_items WHERE quantity <= minimum_stock ORDER BY quantity ASC, name ASC LIMIT 10`),
       dashboardQuery('recent members', `SELECT id, full_name, email, created_at FROM users WHERE role='member' ORDER BY created_at DESC LIMIT 5`),
       dashboardQuery('upcoming classes', `SELECT cs.*, u.full_name AS trainer_name FROM class_schedules cs JOIN users u ON u.id=cs.trainer_id WHERE cs.start_time >= NOW() AND cs.status='scheduled' ORDER BY cs.start_time ASC LIMIT 5`)
->>>>>>> Stashed changes
     ]);
 
     res.json({
       totalMembers: members.rows[0].total,
-<<<<<<< Updated upstream
-      totalRevenue: revenue.rows[0].total,
-=======
       totalTrainers: trainers.rows[0].total,
       totalRevenue: Number(revenue.rows[0].total || 0) + Number(invoiceSummary.rows[0].paidAmount || 0),
->>>>>>> Stashed changes
       membershipStatusBreakdown: statusBreakdown.rows,
       dailyAttendanceTrend: attendanceTrend.rows,
       activeMembers: Number(activeCounts.rows[0].activeMembers || 0),
@@ -113,8 +95,6 @@ async function adminSummary(req, res) {
       monthlyRevenue: monthlyRevenue.rows,
       memberRegistrations: registrations.rows,
       trainerAllocation: trainerAllocation.rows,
-<<<<<<< Updated upstream
-=======
       revenueSummary: {
         paidAmount: Number(invoiceSummary.rows[0].paidAmount || 0),
         pendingAmount: Number(invoiceSummary.rows[0].pendingAmount || 0),
@@ -126,7 +106,6 @@ async function adminSummary(req, res) {
       lowStockItems: lowStock.rows,
       recentMembers: recentMembers.rows,
       upcomingClasses: upcomingClasses.rows,
->>>>>>> Stashed changes
     });
   } catch (err) {
     console.error(err);
@@ -166,28 +145,44 @@ async function trainerSummary(req, res) {
 }
 
 // GET /api/dashboard/member
+// FIXED: Prioritise active memberships over pending
 async function memberSummary(req, res) {
   const memberId = req.user.id;
   try {
-    const [membership, plans, upcomingClasses, progress] = await Promise.all([
-      pool.query(
-        `SELECT m.*, mp.name AS plan_name FROM memberships m
-         JOIN membership_plans mp ON mp.id = m.membership_plan_id
-         WHERE m.member_id = $1 ORDER BY m.created_at DESC LIMIT 1`,
-        [memberId]
-      ),
-      pool.query(`SELECT * FROM workout_plans WHERE member_id = $1 ORDER BY created_at DESC LIMIT 5`, [memberId]),
-      pool.query(
-        `SELECT cs.* FROM attendance a JOIN class_schedules cs ON cs.id = a.class_schedule_id
-         WHERE a.member_id = $1 AND cs.start_time >= NOW() AND a.status != 'cancelled'
-         ORDER BY cs.start_time ASC LIMIT 5`,
-        [memberId]
-      ),
-      pool.query(`SELECT * FROM progress_metrics WHERE member_id = $1 ORDER BY recorded_at ASC`, [memberId]),
-    ]);
+    // 1. Membership – show active if exists, otherwise latest pending/expired
+    const membershipResult = await pool.query(
+      `SELECT m.*, mp.name AS plan_name FROM memberships m
+       JOIN membership_plans mp ON mp.id = m.membership_plan_id
+       WHERE m.member_id = $1
+       ORDER BY CASE WHEN m.status = 'active' THEN 0 ELSE 1 END, m.created_at DESC
+       LIMIT 1`,
+      [memberId]
+    );
+    const membership = membershipResult.rows[0] || null;
+
+    // 2. Workout plans
+    const plans = await pool.query(
+      `SELECT * FROM workout_plans WHERE member_id = $1 ORDER BY created_at DESC LIMIT 5`,
+      [memberId]
+    );
+
+    // 3. Upcoming classes
+    const upcomingClasses = await pool.query(
+      `SELECT cs.* FROM attendance a
+       JOIN class_schedules cs ON cs.id = a.class_schedule_id
+       WHERE a.member_id = $1 AND cs.start_time >= NOW() AND a.status != 'cancelled'
+       ORDER BY cs.start_time ASC LIMIT 5`,
+      [memberId]
+    );
+
+    // 4. Progress history
+    const progress = await pool.query(
+      `SELECT * FROM progress_metrics WHERE member_id = $1 ORDER BY recorded_at ASC`,
+      [memberId]
+    );
 
     res.json({
-      membership: membership.rows[0] || null,
+      membership: membership,
       workoutPlans: plans.rows,
       upcomingClasses: upcomingClasses.rows,
       progressHistory: progress.rows,

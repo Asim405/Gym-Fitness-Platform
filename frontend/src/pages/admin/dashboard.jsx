@@ -4,6 +4,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import DashboardShell from '../../components/DashboardShell';
 import StatCard from '../../components/StatCard';
 import api from '../../lib/api';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const colors = { active: '#10b981', pending: '#f59e0b', expired: '#ef4444', cancelled: '#64748b' };
 const money = (value) => `Rs. ${Number(value || 0).toLocaleString()}`;
@@ -34,16 +35,16 @@ function AdminDashboardContent() {
     return (
       <DashboardShell title="Admin overview" subtitle="Live gym operations and financial performance.">
         {loading ? (
-          <div className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-8 text-slate-400">
+          <div className="rounded-2xl border border-white/5 bg-[#141a1f]/80 p-8 text-slate-400 shadow-2xl shadow-black/30">
             Loading live gym data…
           </div>
         ) : (
-          <div className="rounded-[2rem] border border-red-800 bg-red-950/50 p-8">
-            <h2 className="text-xl font-semibold text-white">Dashboard unavailable</h2>
-            <p className="mt-2 text-sm text-red-200">{error}</p>
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8">
+            <h2 className="text-xl font-light tracking-tight text-white/90">Dashboard unavailable</h2>
+            <p className="mt-2 text-sm text-red-300">{error}</p>
             <button
               onClick={load}
-              className="mt-5 rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+              className="mt-5 rounded-lg bg-emerald-500/90 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 transition-colors"
             >
               Try again
             </button>
@@ -62,10 +63,11 @@ function AdminDashboardContent() {
   return (
     <DashboardShell title="Admin overview" subtitle="Live gym operations and financial performance.">
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 rounded-[2rem] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-slate-900 p-6 sm:flex-row sm:items-center sm:justify-between">
+        {/* Header bar */}
+        <div className="flex flex-col gap-4 rounded-2xl border border-white/5 bg-[#141a1f]/80 p-6 shadow-2xl shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium text-emerald-300">Gym command center</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">Today’s operational snapshot</h2>
+            <p className="text-xs font-light uppercase tracking-wider text-emerald-400/60">Gym command center</p>
+            <h2 className="mt-1 text-2xl font-light tracking-tight text-white/90">Today's operational snapshot</h2>
             <p className="mt-2 text-sm text-slate-400">
               Live totals update whenever you refresh the dashboard.
             </p>
@@ -73,12 +75,14 @@ function AdminDashboardContent() {
           <button
             onClick={load}
             disabled={loading}
-            className="rounded-2xl border border-emerald-500/40 px-4 py-2 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2 text-sm font-medium text-slate-300 hover:border-white/20 hover:text-white transition-colors disabled:opacity-50"
           >
+            <ArrowPathIcon className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? 'Refreshing…' : 'Refresh data'}
           </button>
         </div>
 
+        {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total members" value={data.totalMembers || 0} accent="emerald" />
           <StatCard label="Active trainers" value={data.totalTrainers || 0} accent="sky" />
@@ -86,6 +90,7 @@ function AdminDashboardContent() {
           <StatCard label="Membership revenue" value={money(data.totalRevenue)} accent="emerald" />
         </div>
 
+        {/* Charts grid */}
         <div className="grid gap-6 xl:grid-cols-2">
           <ChartCard title="Membership distribution" subtitle="Current membership statuses.">
             <Donut data={statuses} />
@@ -101,12 +106,13 @@ function AdminDashboardContent() {
           </ChartCard>
         </div>
 
+        {/* Bottom row: Trainer workload + Operational alerts */}
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
           <ChartCard title="Trainer workload" subtitle="Active assignments and scheduled classes.">
             <Workload data={workload} />
           </ChartCard>
-          <section className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6">
-            <h2 className="text-xl font-semibold text-white">Operational alerts</h2>
+          <section className="rounded-2xl border border-white/5 bg-[#141a1f]/80 p-6 shadow-2xl shadow-black/30">
+            <h2 className="text-base font-light tracking-tight text-white/90">Operational alerts</h2>
             <List
               title="Low stock"
               items={data.lowStockItems}
@@ -126,10 +132,11 @@ function AdminDashboardContent() {
   );
 }
 
+// Helper components
 function ChartCard({ title, subtitle, children }) {
   return (
-    <section className="rounded-[2rem] border border-slate-800 bg-slate-900/95 p-6">
-      <h2 className="text-xl font-semibold text-white">{title}</h2>
+    <section className="rounded-2xl border border-white/5 bg-[#141a1f]/80 p-6 shadow-2xl shadow-black/30">
+      <h2 className="text-base font-light tracking-tight text-white/90">{title}</h2>
       <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
       <div className="mt-5 h-72">{children}</div>
     </section>
@@ -138,7 +145,7 @@ function ChartCard({ title, subtitle, children }) {
 
 function Empty({ text }) {
   return (
-    <div className="flex h-full items-center justify-center rounded-2xl bg-slate-950/70 p-6 text-center text-sm text-slate-400">
+    <div className="flex h-full items-center justify-center rounded-lg border border-white/5 bg-[#0c0f12]/50 p-6 text-center text-sm text-slate-400">
       {text}
     </div>
   );
@@ -161,8 +168,13 @@ function Donut({ data }) {
             <Cell key={item.status} fill={colors[item.status] || '#64748b'} />
           ))}
         </Pie>
-        <Tooltip formatter={(value, name) => [value, name]} />
-        <Legend />
+        <Tooltip
+          formatter={(value, name) => [value, name]}
+          contentStyle={{ backgroundColor: '#141a1f', borderColor: '#ffffff20', color: '#e2e8f0' }}
+        />
+        <Legend
+          wrapperStyle={{ color: '#94a3b8' }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
@@ -175,25 +187,26 @@ function AreaGraph({ data, dataKey, xKey = 'month', format }) {
       <AreaChart data={data}>
         <XAxis
           dataKey={xKey}
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          tick={{ fill: '#64748b', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          tick={{ fill: '#64748b', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
         <Tooltip
-          contentStyle={{ background: '#0f172a', borderColor: '#334155' }}
+          contentStyle={{ backgroundColor: '#141a1f', borderColor: '#ffffff20', color: '#e2e8f0' }}
+          labelStyle={{ color: '#e2e8f0' }}
           formatter={(value) => (format ? format(value) : value)}
         />
         <Area
           type="monotone"
           dataKey={dataKey}
-          stroke="#10b981"
-          fill="#10b981"
-          fillOpacity={0.2}
+          stroke="#22c55e"
+          fill="#22c55e"
+          fillOpacity={0.15}
           strokeWidth={2}
         />
       </AreaChart>
@@ -208,20 +221,24 @@ function Workload({ data }) {
       <BarChart data={data}>
         <XAxis
           dataKey="trainer_name"
-          tick={{ fill: '#94a3b8', fontSize: 11 }}
+          tick={{ fill: '#64748b', fontSize: 11 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: '#94a3b8', fontSize: 12 }}
+          tick={{ fill: '#64748b', fontSize: 12 }}
           axisLine={false}
           tickLine={false}
         />
-        <Tooltip contentStyle={{ background: '#0f172a', borderColor: '#334155' }} />
-        <Legend />
+        <Tooltip
+          contentStyle={{ backgroundColor: '#141a1f', borderColor: '#ffffff20', color: '#e2e8f0' }}
+        />
+        <Legend
+          wrapperStyle={{ color: '#94a3b8' }}
+        />
         <Bar
           dataKey="assigned_members"
-          fill="#10b981"
+          fill="#22c55e"
           name="Assigned members"
           radius={[6, 6, 0, 0]}
         />
@@ -239,17 +256,17 @@ function Workload({ data }) {
 function List({ title, items = [], render, empty }) {
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+      <h3 className="text-xs font-light uppercase tracking-wider text-slate-500">{title}</h3>
       {items.length ? (
-        <ul className="mt-3 space-y-2">
+        <ul className="mt-2 space-y-1.5">
           {items.slice(0, 5).map((item) => (
-            <li key={item.id} className="rounded-2xl bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
+            <li key={item.id} className="rounded-lg border border-white/5 bg-[#0c0f12]/50 px-3 py-2 text-sm text-slate-300">
               {render(item)}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm text-slate-400">{empty}</p>
+        <p className="mt-2 text-sm text-slate-400">{empty}</p>
       )}
     </div>
   );
