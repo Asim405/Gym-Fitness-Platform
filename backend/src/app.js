@@ -27,16 +27,15 @@ const allowedOrigins = [
   'https://gym-fitness-platform.vercel.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
-].filter(Boolean); // removes undefined entries
+].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      callback(null, true); // Fallback allow to prevent production block
+      callback(null, true);
     }
   },
   credentials: true,
@@ -76,7 +75,7 @@ app.use('/api', trainerRelationsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
-// ---- Swagger docs (served from the static YAML spec) ----
+// ---- Swagger docs ----
 try {
   const swaggerUi = require('swagger-ui-express');
   const YAML = require('yamljs');
