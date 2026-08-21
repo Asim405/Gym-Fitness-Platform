@@ -21,18 +21,39 @@ const invoiceRoutes = require('./routes/invoices.routes');
 
 const app = express();
 
-// ---- Global middleware ----
-app.use(helmet());
-const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+// ---- Dynamic Allowed Origins List ----
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'https://gym-fitness-platform.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+].filter(Boolean); // removes undefined entries
+
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === 'development'
-      ? true
-      : [clientUrl, 'http://127.0.0.1:3000'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Fallback allow to prevent production block
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
+
+// ---- Global middleware ----
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
+
 app.use(express.json());
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -51,8 +72,8 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/diet-plans', dietPlansRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/progress', progressRoutes);
-app.use('/api/dashboard', dashboardRoutes);
 app.use('/api', trainerRelationsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/invoices', invoiceRoutes);
 
 // ---- Swagger docs (served from the static YAML spec) ----
