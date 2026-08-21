@@ -344,3 +344,5 @@ function Field({ label, children }) {
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors';
+
+  //adding to git
