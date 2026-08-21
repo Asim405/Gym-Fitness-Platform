@@ -6,15 +6,23 @@ import { CalendarIcon, UserIcon, ClipboardDocumentListIcon } from '@heroicons/re
 
 function TrainerDietPlans() {
   const [plans, setPlans] = useState([]);
+  const [assignedMembers, setAssignedMembers] = useState([]);
   const [form, setForm] = useState({ memberId: '', title: '', calories: '', protein: '', carbs: '', fats: '', notes: '' });
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
   useEffect(() => {
+    // 1. Fetch Diet Plans
     api
       .get('/diet-plans')
       .then((res) => setPlans(res.data.data || []))
       .catch(() => setError('Failed to load diet plans.'));
+
+    // 2. Fetch Assigned Members for Dropdown
+    api
+      .get('/trainer-relations/members')
+      .then((res) => setAssignedMembers(res.data.data || res.data || []))
+      .catch(() => console.error('Failed to load members for dropdown'));
   }, []);
 
   async function handleSubmit(e) {
@@ -73,15 +81,21 @@ function TrainerDietPlans() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Member ID</label>
-              <input
-                type="number"
+              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">Select Member</label>
+              {/* FIX: Form state `form.memberId` to bind dropdown */}
+              <select
                 value={form.memberId}
                 onChange={(e) => setForm((prev) => ({ ...prev, memberId: e.target.value }))}
                 required
-                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
-                placeholder="Enter member ID"
-              />
+                className="mt-1 w-full rounded-lg border border-white/10 bg-[#0c0f12]/50 px-4 py-2.5 text-sm text-white focus:border-emerald-400/50 focus:outline-none focus:ring-0 transition-colors"
+              >
+                <option value="">Select Member</option>
+                {assignedMembers.map((member) => (
+                  <option key={member.id || member.member_id} value={member.id || member.member_id} className="bg-[#141a1f] text-white">
+                    {member.full_name || member.name || `Member #${member.id || member.member_id}`}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
