@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import PulseFitLanding from '../components/PulseFitLanding';
 import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
@@ -8,12 +9,24 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace(user ? homeForRole(user.role) : '/login');
-  }, [user, loading]);
+    if (user) router.replace(homeForRole(user.role));
+  }, [user, loading, homeForRole, router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-400">
-      Loading…
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0c0f12] text-slate-400">
+        Loading…
+      </div>
+    );
+  }
+
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0c0f12] text-slate-400">
+        Redirecting…
+      </div>
+    );
+  }
+
+  return <PulseFitLanding />;
 }
